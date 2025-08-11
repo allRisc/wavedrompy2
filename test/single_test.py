@@ -65,7 +65,7 @@ raster_difference = diff_raster(f_out_js, f_out_py)
 #%% [markdown]
 # # Analyze Raster Difference
 # This cell does some analysis on the difference between the two images generarted by rasterizing the SVG output by *wavedrom* and *wavedrompy*.  The cell saves several channel-specific differences to images so the differences can be visualized.
-# 
+#
 # The process should work with differences in all four channels of an RGBA image.  It will not work with L (grayscale) images.  This has only been tested with RGBA images that have differences in either:
 # - The RGB channels only
 # - The alpha channel only
@@ -100,8 +100,7 @@ if 'A' in differentBands:
     display(alphaOnlyEnhanced)
     alphaOnlyEnhanced.save('./tmp/' + test_name + '_alphaOnlyDiff.png')
 
-#%% Compose the original and difference images
-import cairosvg, io
+
 
 noAlphaCopy = noAlphaEnhanced.copy()
 
@@ -112,7 +111,7 @@ png_js = cairosvg.svg2png(svg_js)
 orig = Image.open(io.BytesIO(png_js))
 origCopy = orig.copy()
 
-#Compose the two images, 
+#Compose the two images,
 noAlphaCopy.putalpha(255)
 origCopy.putalpha(64)
 noAlphaCopy.alpha_composite(origCopy)

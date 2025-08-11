@@ -1,5 +1,10 @@
-# Copyright wavedrompy contributors.
-# SPDX-License-Identifier: MIT
+# MIT License
+#
+# Copyright (c) 2011-2019 Aliaksei Chapyzhenka, BreizhGeek, Kazuki Yamamoto,
+#                         MutantPlatypus, Stefan Wallentowitz, Benjamin Davis
+#
+# This software is licensed under the MIT License.
+# See the LICENSE file in the project root for the full license text.
 
 # Originally translated to Python from original file:
 # https://github.com/drom/wavedrom/blob/master/src/WaveDrom.js
@@ -13,10 +18,8 @@ import svgwrite
 from .attrdict import AttrDict
 from collections import deque
 
-from six import string_types
-
-from wavedrom.tspan import JsonMLElement
-from . import waveskin, css
+from .tspan import JsonMLElement
+from . import waveskin
 from .base import SVGBase
 
 
@@ -220,7 +223,7 @@ class WaveDrom(SVGBase):
         def data_extract(e):
             tmp = e.get("data")
             if tmp is not None:
-                tmp = tmp.split() if isinstance(tmp, string_types) else tmp
+                tmp = tmp.split() if isinstance(tmp, str) else tmp
             return tmp
 
         content = []
@@ -867,7 +870,7 @@ class WaveDrom(SVGBase):
                 fill="#000",
             )
             tmark["xml:space"] = "preserve"
-            if isinstance(cxt[anchor]["text"], string_types):
+            if isinstance(cxt[anchor]["text"], str):
                 tmark.add(self.element.tspan(cxt[anchor]["text"]))
             else:
                 tmark.add(JsonMLElement(cxt[anchor]["text"]))
@@ -881,7 +884,7 @@ class WaveDrom(SVGBase):
 
         val = cxt[ref1][ref2]
 
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = val.split()
         elif isinstance(val, (int, float, bool)):
             offset = int(val)
@@ -894,7 +897,7 @@ class WaveDrom(SVGBase):
                 return
             elif len(val) == 1:
                 offset = val[0]
-                if isinstance(offset, string_types):
+                if isinstance(offset, str):
                     L = val
                 else:
                     for i in range(length):
@@ -906,12 +909,12 @@ class WaveDrom(SVGBase):
                 if len(tmp) == 2:
                     dp = len(tmp[1])
 
-                if isinstance(offset, string_types) or isinstance(step, string_types):
+                if isinstance(offset, str) or isinstance(step, str):
                     L = val
                 else:
                     offset = step * offset
                     for i in range(length):
-                        L[i] = "{0:.", dp, "f}".format(step * i + offset)
+                        L[i] = f"{step * i + offset:.{dp}f}"
             else:
                 L = val
 
@@ -975,20 +978,20 @@ class WaveDrom(SVGBase):
                 label = val.get("label")
                 if label:
                     pos = 0
-                    for l in re.findall(
+                    for lab in re.findall(
                         r"([\.\w]|(?:\{\w+\}))(?:\((\d*\.?\d+)\))?", label
                     ):
-                        if l[0] == ".":
+                        if lab[0] == ".":
                             pos += 1
                             continue
 
-                        text = l[0]
+                        text = lab[0]
                         try:
-                            offset = float(l[1])
+                            offset = float(lab[1])
                         except ValueError:
                             offset = 0
 
-                        m = re.match(r"\{(\w+)\}", l[0])
+                        m = re.match(r"\{(\w+)\}", lab[0])
                         if m:
                             text = m.group(1)
                         x = int(
@@ -1528,7 +1531,7 @@ class WaveDrom(SVGBase):
 
             # Render
             lanes.add(marks)
-            [lanes.add(l) for l in lanegroups]
+            [lanes.add(lane) for lane in lanegroups]
             lanes.add(arcs)
             lanes.add(gaps)
 

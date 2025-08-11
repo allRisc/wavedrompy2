@@ -1,6 +1,7 @@
-import pytest
+# Copyright wavedrompy contributors.
+# SPDX-License-Identifier: MIT
 
-from wavedrom import WaveDrom
+from wavedrom2 import WaveDrom
 from brick_regressions import all
 
 
