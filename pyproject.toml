@@ -48,4 +48,13 @@ CairoSVG = [
     "cairosvg>=1.0",
 ]
 
+[dependency-groups]
+dev = [
+    "mypy>=1.4.1",
+    "pytest>=7.4.4",
+    "ruff>=0.12.8",
+    "sphinx>=5.3.0",
+    "sphinx-rtd-theme>=2.0.0",
+]
+
 
