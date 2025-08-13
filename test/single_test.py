@@ -11,27 +11,27 @@ if not os.getcwd()[-4:] == 'test':
 # # Test Case Selection and Configuration
 # Change `file` to the .json that should be rendered and tested
 #%%
-#The json file to render with `wavedrompy` and `wavedrom`, then compare the results
+#The json file to render with `wavedrompy` and `wavedrom2`, then compare the results
 file = './files/issue_14.json'
 
 #The directory where the SVG and PNG files will be saved
 tmpdir = './tmp'
-wavedromdir = './tmp/wavedrom'
+wavedromdir = './tmp/wavedrom2'
 
 #%% from `test_render.py`
 import subprocess
 from os.path import splitext, basename
 
-import wavedrom
+import wavedrom2
 from diff import diff_raster
 from diff import main as diff
 
 #%% [markdown]
 # # Upstream Setup
-# Uncomment these two lines if the environment needs to have wavedrom downloaded and installed
+# Uncomment these two lines if the environment needs to have wavedrom2 downloaded and installed
 #%% from `test_render.py`, `wavedromdir(tmpdir_factory)`
 
-#subprocess.check_call("git clone https://github.com/wavedrom/wavedrom.git {}".format(wavedromdir), shell=True)
+#subprocess.check_call("git clone https://github.com/wavedrom2/wavedrom2.git {}".format(wavedromdir), shell=True)
 #subprocess.check_call("npm install", cwd=str(wavedromdir), shell=True)
 
 #%% [markdown]
@@ -44,9 +44,9 @@ f_out_js = "{}/{}_js.svg".format(tmpdir, test_name)
 f_out_py = "{}/{}_py.svg".format(tmpdir, test_name)
 
 subprocess.check_call("node {}/bin/cli.js -i {} > {}".format(wavedromdir, file, f_out_js), shell=True)
-wavedrom.render_file(file, f_out_py, strict_js_features=True)
+wavedrom2.render_file(file, f_out_py, strict_js_features=True)
 
-display('wavedrom:')
+display('wavedrom2:')
 display(SVG(f_out_js))
 display('wavedrompy:')
 display(SVG(f_out_py))
@@ -64,7 +64,7 @@ raster_difference = diff_raster(f_out_js, f_out_py)
 
 #%% [markdown]
 # # Analyze Raster Difference
-# This cell does some analysis on the difference between the two images generarted by rasterizing the SVG output by *wavedrom* and *wavedrompy*.  The cell saves several channel-specific differences to images so the differences can be visualized.
+# This cell does some analysis on the difference between the two images generarted by rasterizing the SVG output by *wavedrom2* and *wavedrompy*.  The cell saves several channel-specific differences to images so the differences can be visualized.
 #
 # The process should work with differences in all four channels of an RGBA image.  It will not work with L (grayscale) images.  This has only been tested with RGBA images that have differences in either:
 # - The RGB channels only
@@ -116,7 +116,7 @@ noAlphaCopy.putalpha(255)
 origCopy.putalpha(64)
 noAlphaCopy.alpha_composite(origCopy)
 
-#Use original transparency from wavedrom image
+#Use original transparency from wavedrom2 image
 noAlphaCopy.putalpha(orig.split()[-1])
 
 display(noAlphaCopy)

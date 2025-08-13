@@ -109,7 +109,7 @@ class Assign(SVGBase):
         ymin = min(ys)
         ymax = max(ys)
 
-        g = self.container.g(transform="translate(16,0)")
+        g = self.container.g(transform="translate(16, 0)")
         g.add(
             self.element.path(
                 d="M {},{} {},{}".format(spec[2][0], ymin, spec[2][0], ymax),
@@ -123,7 +123,7 @@ class Assign(SVGBase):
             ret.add(self.container.g().add(path))
 
         g = self.container.g(
-            transform="translate({},{})".format(spec[1][0], spec[1][1])
+            transform="translate({}, {})".format(spec[1][0], spec[1][1])
         )
         g.add(self.element.title(spec[0]))
         g.add(self.draw_body(spec[0], ymin - spec[1][1], ymax - spec[1][1]))
@@ -152,7 +152,7 @@ class Assign(SVGBase):
             fname = tree.name
             fx = 32 * (xmax - tree.x)
             fy = 8 * tree.y
-            g = self.container.g(transform="translate({},{})".format(fx, fy))
+            g = self.container.g(transform="translate({}, {})".format(fx, fy))
             g.add(self.element.title(fname))
             g.add(self.element.path(d="M 2,0 a 2,2 0 1 1 -4,0 2,2 0 1 1 4,0 z"))
             tspan = self.element.tspan(fname, x=[-4], y=[4], class_="pinname")
@@ -197,12 +197,12 @@ class Assign(SVGBase):
         for t in tree:
             content = self.draw_boxes(t, xmax)
 
-        attr = {"viewBox": "0 0 {} {}".format(width, height)}
+        attr = {"viewBox": "0,0,{},{}".format(width, height)}
         template = svgwrite.Drawing(
             id="svgcontent_{index}".format(index=index), size=[width, height], **attr
         )
         template.defs.add(svgwrite.container.Style(content=STYLE))
-        g = self.container.g(transform="translate(0.5,0.5)")
+        g = self.container.g(transform="translate(0.5, 0.5)")
         g.add(grid)
         g.add(content)
         template.add(g)

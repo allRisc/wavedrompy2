@@ -7,11 +7,7 @@ import svgwrite
 from svgwrite.base import BaseElement
 from svgwrite.etree import etree
 from .attrdict import AttrDict
-
-if sys.version_info < (3, 0):
-    from HTMLParser import HTMLParser
-else:
-    from html.parser import HTMLParser
+from html.parser import HTMLParser
 
 
 class TspanParser(HTMLParser, object):

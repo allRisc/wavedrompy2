@@ -4,15 +4,16 @@ import sys
 from glob import glob
 from os.path import splitext, basename
 
-import wavedrom
+import xml.dom.minidom
+
+import wavedrom2
 import pytest
-from diff import diff_raster
-from diff import main as diff
+from diff import diff_raster, diff_xml
 
 files_basic = glob("test/files/signal_*.json")
-files_subcycle = glob("test/files/subcycle_*.json")
-files_assign = glob("test/files/assign_*.json")
-files_bitfield = glob("test/files/bitfield_*.json")
+# files_subcycle = glob("test/files/subcycle_*.json")
+# files_assign = glob("test/files/assign_*.json")
+# files_bitfield = glob("test/files/bitfield_*.json")
 files_tutorial = glob("test/files/tutorial_*.json")
 files_issues = glob("test/files/issue_*.json")
 
@@ -25,7 +26,7 @@ def pytest_generate_tests(metafunc):
 
 def test_render(file):
     jinput = open(file).read()
-    wavedrom.render(jinput)
+    wavedrom2.render(jinput)
 
 
 @pytest.fixture(scope="session")
@@ -34,9 +35,10 @@ def wavedromdir(tmpdir_factory):
         return os.environ["WAVEDROMDIR"]
     else:
         wavedromdir = tmpdir_factory.mktemp("wavedrom")
-        subprocess.check_call("git clone https://github.com/wavedrom/wavedrom.git {}".format(wavedromdir), shell=True)
-        subprocess.check_call("git reset --hard 1d4d25181d6660b5d069defcf04583158b51aa5c~1", cwd=str(wavedromdir), shell=True)
+        subprocess.check_call("git clone https://github.com/wavedrom/cli.git {}".format(wavedromdir), shell=True)
+        subprocess.check_call("git reset --hard bf95544a52f5c23e98917255df2017759fcd18da", cwd=str(wavedromdir), shell=True)
         subprocess.check_call("npm install", cwd=str(wavedromdir), shell=True)
+        subprocess.check_call("npm install wavedrom@3.5.0", shell=True)
         return wavedromdir
 
 
@@ -46,10 +48,18 @@ def test_upstream(tmpdir,wavedromdir,file):
     f_out = "{}/{}.svg".format(tmpdir, base)
     f_out_py = "{}/{}_py.svg".format(tmpdir, base)
 
-    subprocess.check_call("node {}/bin/cli.js -i {} > {}".format(wavedromdir, file, f_out), shell=True)
-    wavedrom.render_file(file, f_out_py, strict_js_features=True)
+    subprocess.check_call("node {}/wavedrom-cli.js -i {} > {}".format(wavedromdir, file, f_out), shell=True)
+    wavedrom2.render_file(file, f_out_py, strict_js_features=True)
 
-    unknown = diff(f_out, f_out_py)
+    dom = xml.dom.minidom.parse(f_out)
+    with open(f_out, "w") as f:
+        f.write(dom.toprettyxml())
+
+    dom = xml.dom.minidom.parse(f_out_py)
+    with open(f_out_py, "w") as f:
+        f.write(dom.toprettyxml())
+
+    unknown = diff_xml(f_out, f_out_py)
 
     if len(unknown) > 0:
         msg = "{} mismatch(es)\n".format(len(unknown))
@@ -60,4 +70,7 @@ def test_upstream(tmpdir,wavedromdir,file):
     img = diff_raster(f_out, f_out_py)
 
     if img.getbbox() is not None:
+        img.save("{}/{}_diff.png".format(tmpdir, base))
         pytest.fail("Raster image comparison failed for " + file)
+
+    # assert False

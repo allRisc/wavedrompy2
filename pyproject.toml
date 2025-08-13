@@ -50,11 +50,18 @@ CairoSVG = [
 
 [dependency-groups]
 dev = [
+    "demjson3>=3.0.6",
+    "lxml-stubs>=0.5.1",
     "mypy>=1.4.1",
+    "pillow>=9.5.0",
     "pytest>=7.4.4",
     "ruff>=0.12.8",
     "sphinx>=5.3.0",
     "sphinx-rtd-theme>=2.0.0",
+    "types-pyyaml>=6.0.12.12",
+    "xmldiff>=2.6.3",
 ]
 
-
+[project.scripts]
+wavedrompy="wavedrom2:main"
+wavedrompy2="wavedrom2:main"

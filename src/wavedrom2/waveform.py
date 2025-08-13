@@ -278,7 +278,8 @@ class WaveDrom(SVGBase):
         if val[1]:
             for i in range(len(val[1])):
                 b = self.container.use(href="#{}".format(val[1][i]))
-                b.translate(i * self.lane.xs)
+                if i * self.lane.xs:
+                    b.translate(i * self.lane.xs)
                 g.add(b)
 
             if val[2] and len(val[2]):
@@ -827,7 +828,8 @@ class WaveDrom(SVGBase):
             if name is not None:
                 dy = self.lane.y0 + j * self.lane.yo
                 g = self.container.g(id="wavelane_{j}_{index}".format(j=j, index=index))
-                g.translate(0, dy)
+                if dy != 0:
+                    g.translate(0, dy)
                 title = self.element.text(
                     "", x=[self.lane.tgo], y=[self.lane.ym], text_anchor="end"
                 )
@@ -847,7 +849,8 @@ class WaveDrom(SVGBase):
                 gg = self.container.g(
                     id="wavelane_draw_{j}_{index}".format(j=j, index=index)
                 )
-                gg.translate(xoffset * self.lane.xs, 0)
+                if xoffset * self.lane.xs != 0:
+                    gg.translate(xoffset * self.lane.xs, 0)
 
                 self.render_lane_uses(val, gg)
 
@@ -892,7 +895,7 @@ class WaveDrom(SVGBase):
             for i in range(length):
                 val.append(i + offset)
 
-        if type(val) is list:
+        if type(val) is list:  # TODO: Fix
             if len(val) == 0:
                 return
             elif len(val) == 1:
@@ -921,12 +924,16 @@ class WaveDrom(SVGBase):
         else:
             return
 
+        mark_group = self.container.g()
+        mark_group["class"] = "muted"
+        mark_group["text-anchor"] = "middle"
+        mark_group["xml:space"] = "preserve"
+
+        g.add(mark_group)
+
         for i in range(length):
-            tmp = L[i]
-            tmark = self.element.text(tmp, x=[i * dx + x], y=[y], text_anchor="middle")
-            tmark["class"] = "muted"
-            tmark["xml:space"] = "preserve"
-            g.add(tmark)
+            tmark = self.element.text(L[i], x=[i * dx + x], y=[y])
+            mark_group.add(tmark)
 
     def render_marks(self, content="", index=0):
         def get_elem(e):
@@ -945,14 +952,18 @@ class WaveDrom(SVGBase):
         gy = len(content) * int(self.lane.yo)
 
         g = self.container.g(id="gmarks_{}".format(index))
+        gmarklines = self.container.g(style="stroke:#888;stroke-width:0.5;stroke-dasharray:1,3")
 
         for i in range(marks + 1):
-            gg = self.element.path(
+            print(i*mmstep)
+            gg = self.element.line(
                 id="gmark_{i}_{index}".format(i=i, index=index),
-                d="m {dx},0 0,{gy}".format(dx=i * mmstep, gy=gy),
-                style="stroke:#888;stroke-width:0.5;stroke-dasharray:1,3",
+                start=(i*mmstep, 0),
+                end=(i*mmstep, gy)
             )
-            g.add(gg)
+            gmarklines.add(gg)
+
+        g.add(gmarklines)
 
         self.captext(g, self.lane, "head", -33 if (self.lane.yh0 > 0) else -13)
         self.captext(g, self.lane, "foot", gy + (45 if (self.lane.yf0 > 0) else 25))
@@ -1253,15 +1264,15 @@ class WaveDrom(SVGBase):
         )
 
     def render_label(self, p, text):
-        w = self.text_width(text, 8) + 2
+        w = self.text_width(text, 11) + 2
         g = self.container.g(transform="translate({},{})".format(p.x, p.y))
         # todo: I don't think this is correct. reported:
         # https://github.com/wavedrom/wavedrom/issues/252
         rect = self.element.rect(
-            insert=(int(0 - w / 2), -5), size=(w, 10), style="fill:#FFF;"
+            insert=(int(0 - w / 2), -5), size=(w, 11), style="fill:#FFF;"
         )
         label = self.element.text(
-            "", style="font-size:8px;", text_anchor="middle", y=[3]
+            "", style="font-size:11px;", text_anchor="middle", y=[3]
         )
         label.add(self.element.tspan(text))
         g.add(rect)
@@ -1452,7 +1463,7 @@ class WaveDrom(SVGBase):
             return ret
 
         skinname = source.get("config", {"skin": "default"}).get("skin", "default")
-        skin = waveskin.WaveSkin.get(skinname, waveskin.WaveSkin["default"])
+        skin = waveskin.get_wave_skin(skinname)
 
         template = svgwrite.Drawing(id="svgcontent_{index}".format(index=index))
         if index == 0:
@@ -1469,11 +1480,10 @@ class WaveDrom(SVGBase):
         return template
 
     def insert_svg_template(self, index=0, parent=[], source={}):
-        e = waveskin.WaveSkin["default"]
+        e = waveskin.DEFAULT_WAVESKIN
 
         if source.get("config") and source.get("config").get("skin"):
-            if waveskin.WaveSkin.get(source.get("config").get("skin")):
-                e = waveskin.WaveSkin[source.get("config").get("skin")]
+            e = waveskin.get_wave_skin(source.get("config").get("skin"))
 
         if index == 0:
             self.lane.xs = int(e[3][1][2][1]["width"])
@@ -1555,12 +1565,17 @@ class WaveDrom(SVGBase):
             dy = float(self.lane.yh0) + float(self.lane.yh1) + 0.5
             lanes.translate(dx, dy)
 
+            waves.add(SVGBase.element.rect(
+                size=(width, height), style="stroke:none;fill:white"
+            ))
             waves.add(lanes)
             waves.add(groups)
             template.add(waves)
             return template
 
     def render_groups(self, root=[], groups=[], index=0):
+        group_root = SVGBase.container.g()
+        root.add(group_root)
         for i, val in enumerate(groups):
             dx = groups[i]["x"] + 0.5
             dy = groups[i]["y"] * self.lane.yo + 3.5 + self.lane.yh0 + self.lane.yh1
@@ -1573,7 +1588,7 @@ class WaveDrom(SVGBase):
                 style="stroke:#0041c4;stroke-width:1;fill:none",
             )
 
-            root.add(group)
+            group_root.add(group)
 
             name = groups[i]["name"]
             x = int(groups[i]["x"] - 10)
@@ -1592,7 +1607,7 @@ class WaveDrom(SVGBase):
             t.add(self.element.tspan(name))
             gg.add(t)
             label.add(gg)
-            root.add(label)
+            group_root.add(label)
 
     def render_gap_uses(self, wave, g):
         subCycle = False

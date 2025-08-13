@@ -101,7 +101,12 @@ ENV/
 # mypy
 .mypy_cache/
 
+# Test files
 test/*.svg
 test/*.png
 test/*.pdf
 
+package-lock.json
+package.json
+
+node_modules/
