@@ -28,16 +28,15 @@ def main():
                 create_python_module(data, skin_type)
 
 
-def get_data(file_path: str) -> dict:
+def get_data(file_path: str) -> list:
     with open(file_path, "r") as f:
-        return demjson3.decode(f.read())
+        data = demjson3.decode(f.read())
+        if not isinstance(data, list):
+            raise ValueError("Invalid data format")
+        return data
 
 
-def create_python_module(data: dict, skin_type: str) -> str:
-    module_lines = [
-        f"def get_{skin_type}_data() -> dict:",
-        f"    return {data}",
-    ]
+def create_python_module(data: list, skin_type: str) -> None:
     with open(f"{os.path.dirname(__file__)}/../{skin_type}.py", "w") as f:
         f.write(_header(skin_type) + "\n")
 
@@ -50,9 +49,11 @@ def create_python_module(data: dict, skin_type: str) -> str:
         f.write("\n\n")
 
 
-def get_css_data(data: list) -> dict:
+def get_css_data(data: list) -> str:
     for item in data:
         if isinstance(item, list) and "style" in item and len(item) >= 3:
+            if not isinstance(item[2], str):
+                raise ValueError("Invalid CSS data format")
             return item[2]
     raise ValueError("No CSS data found")
 
