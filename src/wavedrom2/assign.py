@@ -14,9 +14,13 @@ from __future__ import annotations
 from typing import Optional
 
 from collections import namedtuple
-import svgwrite
 
-from .base import SVGBase
+import svgwrite
+import svgwrite.path
+import svgwrite.text
+import svgwrite.container
+import svgwrite.base
+import svgwrite.shapes
 
 
 class RenderState:
@@ -32,7 +36,7 @@ class RenderState:
 RenderObject = namedtuple("RenderObject", "name x y")
 
 
-class Assign(SVGBase):
+class Assign:
     def render_tree(self, tree, state):
         state.xmax = max(state.xmax, state.x)
         y = state.y
@@ -83,44 +87,44 @@ class Assign(SVGBase):
             ymin = -4
 
         if type in gates:
-            return self.element.path(class_="gate", d=gates[type])
+            return svgwrite.path.Path(class_="gate", d=gates[type])
         elif type in iec:
-            g = self.container.g()
+            g = svgwrite.container.Group()
             if type in circled:
-                path = self.element.path(
+                path = svgwrite.path.Path(
                     class_="gate",
                     d="m -16,{} 16,0 0,{} -16,0 z {}".format(
                         ymin - 3, ymax - ymin + 6, circle
                     ),
                 )
             else:
-                path = self.element.path(
+                path = svgwrite.path.Path(
                     class_="gate",
                     d="m -16,{} 16,0 0,{} -16,0 z".format(ymin - 3, ymax - ymin + 6),
                 )
             g.add(path)
-            tspan = self.element.tspan(iec[type], x=[-14], y=[4], class_="wirename")
-            text = self.element.text("")
+            tspan = svgwrite.text.TSpan(iec[type], x=[-14], y=[4], class_="wirename")
+            text = svgwrite.text.Text("")
             text.add(tspan)
             g.add(text)
             return g
         else:
-            tspan = self.element.tspan(type, x=[-14], y=[4], class_="wirename")
-            text = self.element.text("")
+            tspan = svgwrite.text.TSpan(type, x=[-14], y=[4], class_="wirename")
+            text = svgwrite.text.Text("")
             text.add(tspan)
             return text
 
     def draw_gate(self, spec):
-        ret = self.container.g()
+        ret = svgwrite.container.Group()
 
         ys = [s[1] for s in spec[2:]]
 
         ymin = min(ys)
         ymax = max(ys)
 
-        g = self.container.g(transform="translate(16, 0)")
+        g = svgwrite.container.Group(transform="translate(16, 0)")
         g.add(
-            self.element.path(
+            svgwrite.path.Path(
                 d="M {},{} {},{}".format(spec[2][0], ymin, spec[2][0], ymax),
                 class_="wire",
             )
@@ -128,20 +132,20 @@ class Assign(SVGBase):
         ret.add(g)
 
         for s in spec[2:]:
-            path = self.element.path(d="m {},{} 16,0".format(s[0], s[1]), class_="wire")
-            ret.add(self.container.g().add(path))
+            path = svgwrite.path.Path(d="m {},{} 16,0".format(s[0], s[1]), class_="wire")
+            ret.add(svgwrite.container.Group().add(path))
 
-        g = self.container.g(
+        g = svgwrite.container.Group(
             transform="translate({}, {})".format(spec[1][0], spec[1][1])
         )
-        g.add(self.element.title(spec[0]))
+        g.add(svgwrite.base.Title(spec[0]))
         g.add(self.draw_body(spec[0], ymin - spec[1][1], ymax - spec[1][1]))
         ret.add(g)
 
         return ret
 
     def draw_boxes(self, tree, xmax):
-        ret = self.container.g()
+        ret = svgwrite.container.Group()
         spec = []
 
         if isinstance(tree, list):
@@ -161,11 +165,11 @@ class Assign(SVGBase):
             fname = tree.name
             fx = 32 * (xmax - tree.x)
             fy = 8 * tree.y
-            g = self.container.g(transform="translate({}, {})".format(fx, fy))
-            g.add(self.element.title(fname))
-            g.add(self.element.path(d="M 2,0 a 2,2 0 1 1 -4,0 2,2 0 1 1 4,0 z"))
-            tspan = self.element.tspan(fname, x=[-4], y=[4], class_="pinname")
-            text = self.element.text("")
+            g = svgwrite.container.Group(transform="translate({}, {})".format(fx, fy))
+            g.add(svgwrite.base.Title(fname))
+            g.add(svgwrite.path.Path(d="M 2,0 a 2,2 0 1 1 -4,0 2,2 0 1 1 4,0 z"))
+            tspan = svgwrite.text.TSpan(fname, x=[-4], y=[4], class_="pinname")
+            text = svgwrite.text.Text("")
             text.add(tspan)
             g.add(text)
             ret.add(g)
@@ -194,12 +198,12 @@ class Assign(SVGBase):
         ilen = 4 * (xmax + 1)
         jlen = state.y + 1
 
-        grid = self.container.g()
+        grid = svgwrite.container.Group()
 
         for i in range(ilen + 1):
             for j in range(jlen + 1):
                 grid.add(
-                    self.element.rect(
+                    svgwrite.shapes.Rect(
                         height=1,
                         width=1,
                         x=(i * 8 - 0.5),
@@ -216,7 +220,7 @@ class Assign(SVGBase):
             id="svgcontent_{index}".format(index=index), size=[width, height], **attr
         )
         template.defs.add(svgwrite.container.Style(content=STYLE))
-        g = self.container.g(transform="translate(0.5, 0.5)")
+        g = svgwrite.container.Group(transform="translate(0.5, 0.5)")
         g.add(grid)
         g.add(content)
         template.add(g)

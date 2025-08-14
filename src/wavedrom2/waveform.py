@@ -21,12 +21,12 @@ import svgwrite
 from .attrdict import AttrDict
 from collections import deque
 
+from wavedrom2 import svg
 from .tspan import JsonMLElement
 from . import waveskin
-from .base import SVGBase
 
 
-class WaveDrom(SVGBase):
+class WaveDrom:
     def __init__(self):
         self.font_width = 7
         self.lane = AttrDict(
@@ -280,7 +280,7 @@ class WaveDrom(SVGBase):
     def render_lane_uses(self, val, g):
         if val[1]:
             for i in range(len(val[1])):
-                b = self.container.use(href="#{}".format(val[1][i]))
+                b = svg.Use(href="#{}".format(val[1][i]))
                 if i * self.lane.xs:
                     b.translate(i * self.lane.xs)
                 g.add(b)
@@ -291,10 +291,10 @@ class WaveDrom(SVGBase):
                     for k in range(len(labels)):
                         if val[2] and k < len(val[2]):
                             tx = int(labels[k]) * self.lane.xs + self.lane.xlabel
-                            title = self.element.text(
+                            title = svg.Text(
                                 "", x=[tx], y=[self.lane.ym], text_anchor="middle"
                             )
-                            title.add(self.element.tspan(val[2][k]))
+                            title.add(svg.Tspan(val[2][k]))
                             title["xml:space"] = "preserve"
                             g.add(title)
 
@@ -830,13 +830,13 @@ class WaveDrom(SVGBase):
             name = val[0][0].strip()
             if name is not None:
                 dy = self.lane.y0 + j * self.lane.yo
-                g = self.container.g(id="wavelane_{j}_{index}".format(j=j, index=index))
+                g = svg.Group(id="wavelane_{j}_{index}".format(j=j, index=index))
                 if dy != 0:
                     g.translate(0, dy)
-                title = self.element.text(
+                title = svg.Text(
                     "", x=[self.lane.tgo], y=[self.lane.ym], text_anchor="end"
                 )
-                title.add(self.element.tspan(name))
+                title.add(svg.Tspan(name))
                 title["xml:space"] = "preserve"
                 title["class"] = "info"
                 g.add(title)
@@ -849,7 +849,7 @@ class WaveDrom(SVGBase):
                     if xoffset > 0
                     else -2 * xoffset
                 )
-                gg = self.container.g(
+                gg = svg.Group(
                     id="wavelane_draw_{j}_{index}".format(j=j, index=index)
                 )
                 if xoffset * self.lane.xs != 0:
@@ -868,7 +868,7 @@ class WaveDrom(SVGBase):
 
     def captext(self, g, cxt, anchor, y):
         if cxt.get(anchor) and cxt[anchor].get("text"):
-            tmark = self.element.text(
+            tmark = svg.Text(
                 "",
                 x=[float(cxt.xmax) * float(cxt.xs) / 2],
                 y=[y],
@@ -877,7 +877,7 @@ class WaveDrom(SVGBase):
             )
             tmark["xml:space"] = "preserve"
             if isinstance(cxt[anchor]["text"], str):
-                tmark.add(self.element.tspan(cxt[anchor]["text"]))
+                tmark.add(svg.Tspan(cxt[anchor]["text"]))
             else:
                 tmark.add(JsonMLElement(cxt[anchor]["text"]))
             g.add(tmark)
@@ -927,7 +927,7 @@ class WaveDrom(SVGBase):
         else:
             return
 
-        mark_group = self.container.g()
+        mark_group = svg.Group()
         mark_group["class"] = "muted"
         mark_group["text-anchor"] = "middle"
         mark_group["xml:space"] = "preserve"
@@ -935,7 +935,7 @@ class WaveDrom(SVGBase):
         g.add(mark_group)
 
         for i in range(length):
-            tmark = self.element.text(L[i], x=[i * dx + x], y=[y])
+            tmark = svg.Text(L[i], x=[i * dx + x], y=[y])
             mark_group.add(tmark)
 
     def render_marks(self, content="", index=0):
@@ -946,7 +946,7 @@ class WaveDrom(SVGBase):
             elif len(e) == 2:
                 ret = self.element[e[0]](e[1])
             else:
-                ret = self.element.tspan(e)
+                ret = svg.Tspan(e)
             return ret
 
         mstep = 2 * int(self.lane.hscale)
@@ -954,12 +954,12 @@ class WaveDrom(SVGBase):
         marks = int(self.lane.xmax / mstep)
         gy = len(content) * int(self.lane.yo)
 
-        g = self.container.g(id="gmarks_{}".format(index))
-        gmarklines = self.container.g(style="stroke:#888;stroke-width:0.5;stroke-dasharray:1,3")
+        g = svg.Group(id="gmarks_{}".format(index))
+        gmarklines = svg.Group(style="stroke:#888;stroke-width:0.5;stroke-dasharray:1,3")
 
         for i in range(marks + 1):
             print(i * mmstep)
-            gg = self.element.line(
+            gg = svg.Line(
                 id="gmark_{i}_{index}".format(i=i, index=index),
                 start=(i * mmstep, 0),
                 end=(i * mmstep, gy)
@@ -979,14 +979,14 @@ class WaveDrom(SVGBase):
 
     def render_labels(self, root, source, index):
         if source:
-            gg = self.container.g(id="labels_{index}".format(index=index))
+            gg = svg.Group(id="labels_{index}".format(index=index))
 
             for idx, val in enumerate(source):
                 self.lane.period = val.get("period", 1)
                 self.lane.phase = val.get("phase", 0) * 2
 
                 dy = self.lane.y0 + idx * self.lane.yo
-                g = self.container.g(id="labels_{i}_{index}".format(i=idx, index=index))
+                g = svg.Group(id="labels_{i}_{index}".format(i=idx, index=index))
                 g.translate(0, dy)
 
                 label = val.get("label")
@@ -1028,13 +1028,13 @@ class WaveDrom(SVGBase):
                         lwidth = len(text) * self.font_width
                         lx = float(x) - float(lwidth) / 2
                         ly = int(y) - 5
-                        underlabel = self.element.rect(
+                        underlabel = svg.Rect(
                             insert=(lx, ly), size=(lwidth, 8), style="fill:#FFF;"
                         )
                         g.add(underlabel)
                         lx = float(x)
                         ly = int(y) + 2
-                        label = self.element.text(
+                        label = svg.Text(
                             text,
                             style="font-size:8px;",
                             text_anchor="middle",
@@ -1260,7 +1260,7 @@ class WaveDrom(SVGBase):
         return props
 
     def render_arc(self, Edge, frm, to, shapeProps):
-        return self.element.path(
+        return svg.Path(
             id="gmark_{frm}_{to}".format(frm=Edge.frm, to=Edge.to),
             d=shapeProps.d,
             style=shapeProps.style,
@@ -1268,16 +1268,16 @@ class WaveDrom(SVGBase):
 
     def render_label(self, p, text):
         w = self.text_width(text, 11) + 2
-        g = self.container.g(transform="translate({},{})".format(p.x, p.y))
+        g = svg.Group(transform="translate({},{})".format(p.x, p.y))
         # todo: I don't think this is correct. reported:
         # https://github.com/wavedrom/wavedrom/issues/252
-        rect = self.element.rect(
+        rect = svg.Rect(
             insert=(int(0 - w / 2), -5), size=(w, 11), style="fill:#FFF;"
         )
-        label = self.element.text(
+        label = svg.Text(
             "", style="font-size:11px;", text_anchor="middle", y=[3]
         )
-        label.add(self.element.tspan(text))
+        label.add(svg.Tspan(text))
         g.add(rect)
         g.add(label)
         return g
@@ -1321,7 +1321,7 @@ class WaveDrom(SVGBase):
                             Events[eventname] = AttrDict({"x": str(x), "y": str(y)})
                         pos += step
 
-            gg = self.container.g(id="wavearcs_{index}".format(index=index))
+            gg = svg.Group(id="wavearcs_{index}".format(index=index))
 
             if top.get("edge"):
                 for val in top["edge"]:
@@ -1449,13 +1449,24 @@ class WaveDrom(SVGBase):
     def another_template(self, index, source):
         def get_container(elem):
             ctype = elem[0]
-            ret = self.container[ctype]()
+
+            # TODO: Move into svg
+            if ctype == "g":
+                ret = svg.Group()
+            elif ctype == "defs":
+                ret = svg.Defs()
+            elif ctype == "marker":
+                ret = svg.Marker()
+            elif ctype == "use":
+                ret = svg.Use()
+            else:
+                raise TypeError(f"Unknown SVG element type: {ctype}")
             ret.attribs = elem[1]
 
             def gen_elem(e):
                 if e[0] == "path":
                     attr = e[1]
-                    elem = self.element.path(d=attr["d"])
+                    elem = svg.Path(d=attr["d"])
                     elem.attribs = attr
                 elif e[0] == "rect":
                     attr = e[1]
@@ -1463,7 +1474,7 @@ class WaveDrom(SVGBase):
                     y = attr["y"]
                     w = attr["width"]
                     h = attr["height"]
-                    elem = self.element.rect(insert=(x, y), size=(w, h))
+                    elem = svg.Rect(insert=(x, y), size=(w, h))
                     elem.attribs = attr
 
                 return elem
@@ -1593,7 +1604,7 @@ class WaveDrom(SVGBase):
             dy = float(self.lane.yh0) + float(self.lane.yh1) + 0.5
             lanes.translate(dx, dy)
 
-            waves.add(SVGBase.element.rect(
+            waves.add(svg.Rect(
                 size=(width, height), style="stroke:none;fill:white"
             ))
             waves.add(lanes)
@@ -1606,13 +1617,13 @@ class WaveDrom(SVGBase):
             root = []
         if groups is None:
             groups = []
-        group_root = SVGBase.container.g()
+        group_root = svg.Group()
         root.add(group_root)
         for i, val in enumerate(groups):
             dx = val["x"] + 0.5
             dy = val["y"] * self.lane.yo + 3.5 + self.lane.yh0 + self.lane.yh1
             h = int(val["height"] * self.lane.yo - 16)
-            group = self.element.path(
+            group = svg.Path(
                 id="group_{i}_{index}".format(i=i, index=index),
                 d="m {dx},{dy} c -3,0 -5,2 -5,5 l 0,{h} c 0,3 2,5 5,5".format(
                     dx=dx, dy=dy, h=h
@@ -1629,14 +1640,14 @@ class WaveDrom(SVGBase):
                 + self.lane.yh0
                 + self.lane.yh1
             )
-            label = self.container.g()
+            label = svg.Group()
             label.translate(x, y)
-            gg = self.container.g()
+            gg = svg.Group()
             gg.rotate(270)
-            t = self.element.text("", text_anchor="middle")
+            t = svg.Text("", text_anchor="middle")
             t["class"] = "info"
             t["xml:space"] = "preserve"
-            t.add(self.element.tspan(name))
+            t.add(svg.Tspan(name))
             gg.add(t)
             label.add(gg)
             group_root.add(label)
@@ -1669,20 +1680,20 @@ class WaveDrom(SVGBase):
                             (pos - self.lane.period) * float(self.lane.hscale)
                             - float(self.lane.phase)
                         )
-                    b = self.container.use(href="#gap")
+                    b = svg.Use(href="#gap")
                     b.translate(dx)
                     g.add(b)
 
     def render_gaps(self, source, index):
         if source:
-            gg = self.container.g(id="wavegaps_{index}".format(index=index))
+            gg = svg.Group(id="wavegaps_{index}".format(index=index))
 
             for idx, val in enumerate(source):
                 self.lane.period = val.get("period", 1)
                 self.lane.phase = int(val.get("phase", 0) * 2) + self.lane.xmin_cfg
 
                 dy = self.lane.y0 + idx * self.lane.yo
-                g = self.container.g(
+                g = svg.Group(
                     id="wavegap_{i}_{index}".format(i=idx, index=index)
                 )
                 g.translate(0, dy)

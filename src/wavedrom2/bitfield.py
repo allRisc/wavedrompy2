@@ -17,7 +17,7 @@ from math import floor
 
 import svgwrite
 
-from .base import SVGBase
+from wavedrom2 import svg
 from .tspan import TspanParser
 
 
@@ -55,17 +55,17 @@ def type_style(t):
         return ""
 
 
-class BitField(SVGBase):
+class BitField:
     def tspan_parse(self, text):
         parser = TspanParser()
         parser.feed(text)
         return parser.get_text()
 
     def hline(self, len, x=0, y=0):
-        return self.element.line(start=(x, y), end=(x + len, y))
+        return svg.Line(start=(x, y), end=(x + len, y))
 
     def vline(self, len, x=0, y=0):
-        return self.element.line(start=(x, y), end=(x, y + len))
+        return svg.Line(start=(x, y), end=(x, y + len))
 
     def get_text(self, body, x, y=None):
         x_list = None
@@ -74,7 +74,7 @@ class BitField(SVGBase):
         y_list = None
         if y:
             y_list = [y]
-        text = self.element.text("", x=x_list, y=y_list)
+        text = svg.Text("", x=x_list, y=y_list)
         for t in self.tspan_parse(str(body)):
             text.add(t)
         return text
@@ -115,16 +115,16 @@ class BitField(SVGBase):
 
     def labelArr(self, desc):
         step = self.opt.hspace / self.mod
-        bits = self.container.g(
+        bits = svg.Group(
             transform="translate({},{})".format(step / 2, self.opt.vspace / 5)
         )
-        names = self.container.g(
+        names = svg.Group(
             transform="translate({},{})".format(step / 2, self.opt.vspace / 2 + 4)
         )
-        attrs = self.container.g(
+        attrs = svg.Group(
             transform="translate({},{})".format(step / 2, self.opt.vspace)
         )
-        blanks = self.container.g(
+        blanks = svg.Group(
             transform="translate(0,{})".format(self.opt.vspace / 4)
         )
 
@@ -172,13 +172,13 @@ class BitField(SVGBase):
                     insert_x = self.mod - msbm - 1
                 insert = [step * insert_x, 0]
                 size = [step * (msbm - lsbm + 1), self.opt.vspace / 2]
-                blanks.add(self.element.rect(insert=insert, size=size, style=style))
+                blanks.add(svg.Rect(insert=insert, size=size, style=style))
             if e.get("attr") is not None:
                 for attr in self.get_attrs(e, step, lsbm, msbm):
                     for a in attr:
                         attrs.add(a)
 
-        g = self.container.g()
+        g = svg.Group()
         g.add(blanks)
         g.add(bits)
         g.add(names)
@@ -186,7 +186,7 @@ class BitField(SVGBase):
         return g
 
     def labels(self, desc):
-        g = self.container.g(text_anchor="middle")
+        g = svg.Group(text_anchor="middle")
         g.add(self.labelArr(desc))
         return g
 
@@ -195,7 +195,7 @@ class BitField(SVGBase):
         vspace = self.opt.vspace
         mod = self.mod
 
-        g = self.container.g(
+        g = svg.Group(
             stroke="black",
             stroke_width=1,
             stroke_linecap="round",
@@ -231,7 +231,7 @@ class BitField(SVGBase):
         else:
             i = self.opt.lanes - self.index - 1
         y = i * self.opt.vspace + 0.5
-        g = self.container.g(
+        g = svg.Group(
             transform="translate({},{})".format(x, y),
             text_anchor="middle",
             font_size=self.opt.fontsize,

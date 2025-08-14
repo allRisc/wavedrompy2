@@ -7,29 +7,40 @@
 # See the LICENSE file in the project root for the full license text.
 
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, IO, AnyStr
 
 import argparse
 import json
 import yaml
 import sys
+import os
+
+import svgwrite
 
 from .waveform import WaveDrom
 from .assign import Assign
 from .bitfield import BitField
 
 
-def fixQuotes(inputString):
+def fix_quotes(bad_string: str) -> str:
     # fix double quotes in the input file. opening with yaml and dumping with json fix the issues.
-    yamlCode = yaml.load(inputString, Loader=yaml.FullLoader)
-    fixedString = json.dumps(yamlCode, indent=4)
-    return fixedString
+    yaml_code = yaml.load(bad_string, Loader=yaml.FullLoader)
+    fixed_string = json.dumps(yaml_code, indent=4)
+    return fixed_string
 
 
-def render(source="", output: Optional[list] = None, strict_js_features=False):
+def render(
+    source: str = "",
+    output: Optional[list] = None,
+    strict_js_features: bool = False
+) -> svgwrite.Drawing:
     if output is None:
         output = []
-    source = json.loads(fixQuotes(source))
+
+    source = json.loads(fix_quotes(source))
+    if not isinstance(source, dict):
+        raise TypeError("Source must be a dictionary")
+
     if source.get("signal"):
         return WaveDrom().render_waveform(0, source, output, strict_js_features)
     elif source.get("assign"):
@@ -38,19 +49,19 @@ def render(source="", output: Optional[list] = None, strict_js_features=False):
         return BitField().renderJson(source)
 
 
-def render_write(source, output, strict_js_features=False):
+def render_write(source: IO[str], output: IO[AnyStr], strict_js_features: bool = False) -> None:
     jinput = source.read()
     out = render(jinput, strict_js_features=strict_js_features)
     out.write(output)
 
 
-def render_file(source, output, strict_js_features=False):
+def render_file(source: os.PathLike, output: os.PathLike, strict_js_features: bool = False) -> None:
     out = open(output, "w")
     render_write(open(source, "r"), out, strict_js_features=strict_js_features)
     out.close()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "--input",

@@ -23,7 +23,7 @@ def _header(skin_type: str) -> str:
 """
 
 
-def main():
+def main() -> None:
     for dirpath, _, filenames in os.walk(os.path.dirname(__file__)):
         for filename in filenames:
             if filename.endswith(".js"):

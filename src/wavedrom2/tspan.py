@@ -1,7 +1,13 @@
-# Copyright wavedrompy contributors.
-# SPDX-License-Identifier: MIT
+# MIT License
+#
+# Copyright (c) 2011-2019 Aliaksei Chapyzhenka, BreizhGeek, Kazuki Yamamoto,
+#                         MutantPlatypus, Stefan Wallentowitz, Benjamin Davis
+#
+# This software is licensed under the MIT License.
+# See the LICENSE file in the project root for the full license text.
 
 import svgwrite
+import svgwrite.text
 from svgwrite.base import BaseElement
 from svgwrite.etree import etree
 from .attrdict import AttrDict
@@ -20,9 +26,9 @@ class TspanParser(HTMLParser, object):
         "tt": {"font_family": "monospace"},
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(TspanParser, self).__init__()
-        self.text = []
+        self.text: list[svgwrite.text.TSpan] = []
         self.state = []
 
     def handle_starttag(self, tag, attrs):
@@ -41,7 +47,7 @@ class TspanParser(HTMLParser, object):
         else:
             self.text.append(svgwrite.text.TSpan(data, **self.get_style()))
 
-    def get_text(self):
+    def get_text(self) -> list[svgwrite.text.TSpan]:
         return self.text
 
 
