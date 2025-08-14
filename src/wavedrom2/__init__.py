@@ -1,6 +1,13 @@
-# Copyright wavedrompy contributors.
-# SPDX-License-Identifier: MIT
+# MIT License
+#
+# Copyright (c) 2011-2019 Aliaksei Chapyzhenka, BreizhGeek, Kazuki Yamamoto,
+#                         MutantPlatypus, Stefan Wallentowitz, Benjamin Davis
+#
+# This software is licensed under the MIT License.
+# See the LICENSE file in the project root for the full license text.
 
+from __future__ import annotations
+from typing import Optional
 
 import argparse
 import json
@@ -19,7 +26,9 @@ def fixQuotes(inputString):
     return fixedString
 
 
-def render(source="", output=[], strict_js_features=False):
+def render(source="", output: Optional[list] = None, strict_js_features=False):
+    if output is None:
+        output = []
     source = json.loads(fixQuotes(source))
     if source.get("signal"):
         return WaveDrom().render_waveform(0, source, output, strict_js_features)

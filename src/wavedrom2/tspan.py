@@ -1,8 +1,6 @@
 # Copyright wavedrompy contributors.
 # SPDX-License-Identifier: MIT
 
-import sys
-
 import svgwrite
 from svgwrite.base import BaseElement
 from svgwrite.etree import etree

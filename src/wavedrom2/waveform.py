@@ -10,6 +10,9 @@
 # https://github.com/drom/wavedrom/blob/master/src/WaveDrom.js
 # Now many parts have been rewritten and diverged
 
+from __future__ import annotations
+from typing import Optional
+
 import sys
 import math
 import re
@@ -72,8 +75,8 @@ class WaveDrom(SVGBase):
         }
 
         if stretch == -0.5:
-            # This is the only valid non-integer value, it essentially means halfing down. Further subsampling
-            # does not work I think..
+            # This is the only valid non-integer value, it essentially means halfing down.
+            # Further subsampling does not work I think..
             return wave[0::2]
         else:
             stretch = int(stretch)
@@ -214,7 +217,7 @@ class WaveDrom(SVGBase):
                 repeat += 1
             R.extend(self.gen_wave_brick(Top, This, stretch, repeat, subCycle))
 
-        for i in range(int(math.ceil(self.lane.phase))):
+        for _ in range(int(math.ceil(self.lane.phase))):
             R = R[1:]
 
         return R
@@ -250,7 +253,7 @@ class WaveDrom(SVGBase):
         lcount = 0
         gcount = 0
         ret = []
-        for idx, val in enumerate(lanetext):
+        for val in lanetext:
             if val in [
                 "vvv-2",
                 "vvv-3",
@@ -955,11 +958,11 @@ class WaveDrom(SVGBase):
         gmarklines = self.container.g(style="stroke:#888;stroke-width:0.5;stroke-dasharray:1,3")
 
         for i in range(marks + 1):
-            print(i*mmstep)
+            print(i * mmstep)
             gg = self.element.line(
                 id="gmark_{i}_{index}".format(i=i, index=index),
-                start=(i*mmstep, 0),
-                end=(i*mmstep, gy)
+                start=(i * mmstep, 0),
+                end=(i * mmstep, gy)
             )
             gmarklines.add(gg)
 
@@ -1052,7 +1055,7 @@ class WaveDrom(SVGBase):
         const_style = AttrDict(
             {
                 "a": "marker-end:url(#arrowhead);stroke:#0041c4;stroke-width:1;fill:none",
-                "b": "marker-end:url(#arrowhead);marker-start:url(#arrowtail);stroke:#0041c4;stroke-width:1;fill:none",
+                "b": "marker-end:url(#arrowhead);marker-start:url(#arrowtail);stroke:#0041c4;stroke-width:1;fill:none",  # noqa: E501
             }
         )
 
@@ -1321,7 +1324,7 @@ class WaveDrom(SVGBase):
             gg = self.container.g(id="wavearcs_{index}".format(index=index))
 
             if top.get("edge"):
-                for i, val in enumerate(top["edge"]):
+                for val in top["edge"]:
                     Edge.words = val.split()
                     Edge.label = val[len(Edge.words[0]) :]
                     Edge.label = Edge.label[1:]
@@ -1353,7 +1356,9 @@ class WaveDrom(SVGBase):
 
             return gg
 
-    def parse_config(self, source={}):
+    def parse_config(self, source: Optional[dict] = None):
+        if source is None:
+            source = {}
         self.lane.hscale = 1
         if self.lane.get("hscale0"):
             self.lane.hscale = self.lane.hscale0
@@ -1407,7 +1412,12 @@ class WaveDrom(SVGBase):
                 self.lane.yf1 = 46
                 self.lane.foot["text"] = source["foot"]["text"]
 
-    def rec(self, tmp=[], state={}):
+    def rec(self, tmp: Optional[list] = None, state: Optional[dict] = None):
+        if tmp is None:
+            tmp = []
+        if state is None:
+            state = {}
+
         name = None
         delta = AttrDict({"x": 10})
         if isinstance(tmp[0], str) or isinstance(tmp[0], int):
@@ -1415,7 +1425,7 @@ class WaveDrom(SVGBase):
             delta.x = 25
 
         state.x += delta.x
-        for idx, val in enumerate(tmp):
+        for val in tmp:
             if isinstance(val, list):
                 old_y = state.y
                 self.rec(val, state)
@@ -1479,7 +1489,17 @@ class WaveDrom(SVGBase):
 
         return template
 
-    def insert_svg_template(self, index=0, parent=[], source={}):
+    def insert_svg_template(self,
+        index: int = 0,
+        parent: Optional[list] = None,
+        source: Optional[dict] = None
+    ):
+        if parent is None:
+            parent = []
+
+        if source is None:
+            source = {}
+
         e = waveskin.DEFAULT_WAVESKIN
 
         if source.get("config") and source.get("config").get("skin"):
@@ -1516,7 +1536,15 @@ class WaveDrom(SVGBase):
 
         parent.extend(e)
 
-    def render_waveform(self, index=0, source={}, output=[], strict_js_features=False):
+    def render_waveform(self,
+        index: int = 0,
+        source: Optional[dict] = None,
+        output: Optional[list] = None,
+        strict_js_features=False
+    ):
+        if source is None:
+            source = {}
+
         xmax = 0
 
         if source.get("signal"):
@@ -1573,13 +1601,17 @@ class WaveDrom(SVGBase):
             template.add(waves)
             return template
 
-    def render_groups(self, root=[], groups=[], index=0):
+    def render_groups(self, root=Optional[list], groups: Optional[list] = None, index: int = 0):
+        if root is None:
+            root = []
+        if groups is None:
+            groups = []
         group_root = SVGBase.container.g()
         root.add(group_root)
         for i, val in enumerate(groups):
-            dx = groups[i]["x"] + 0.5
-            dy = groups[i]["y"] * self.lane.yo + 3.5 + self.lane.yh0 + self.lane.yh1
-            h = int(groups[i]["height"] * self.lane.yo - 16)
+            dx = val["x"] + 0.5
+            dy = val["y"] * self.lane.yo + 3.5 + self.lane.yh0 + self.lane.yh1
+            h = int(val["height"] * self.lane.yo - 16)
             group = self.element.path(
                 id="group_{i}_{index}".format(i=i, index=index),
                 d="m {dx},{dy} c -3,0 -5,2 -5,5 l 0,{h} c 0,3 2,5 5,5".format(
@@ -1590,10 +1622,10 @@ class WaveDrom(SVGBase):
 
             group_root.add(group)
 
-            name = groups[i]["name"]
-            x = int(groups[i]["x"] - 10)
+            name = val["name"]
+            x = int(val["x"] - 10)
             y = int(
-                self.lane.yo * (groups[i]["y"] + (float(groups[i]["height"]) / 2))
+                self.lane.yo * (val["y"] + (float(val["height"]) / 2))
                 + self.lane.yh0
                 + self.lane.yh1
             )

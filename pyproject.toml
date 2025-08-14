@@ -51,6 +51,7 @@ CairoSVG = [
 [dependency-groups]
 dev = [
     "demjson3>=3.0.6",
+    "flake8>=3.9.2",
     "lxml-stubs>=0.5.1",
     "mypy>=1.4.1",
     "pillow>=9.5.0",
@@ -77,3 +78,21 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = ["svgwrite.*", "demjson3.*"]
 follow_untyped_imports = true
+
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+
+target-version = "py38"
+
+preview = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "W"]

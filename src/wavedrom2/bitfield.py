@@ -1,8 +1,17 @@
-# Copyright wavedrompy contributors.
-# SPDX-License-Identifier: MIT
+# MIT License
+#
+# Copyright (c) 2011-2019 Aliaksei Chapyzhenka, BreizhGeek, Kazuki Yamamoto,
+#                         MutantPlatypus, Stefan Wallentowitz, Benjamin Davis
+#
+# This software is licensed under the MIT License.
+# See the LICENSE file in the project root for the full license text.
 
-# Translated to Python from original file:
+# Originally translated to Python from original file:
 # https://github.com/drom/wavedrom/blob/master/src/WaveDrom.js
+# Now many parts have been rewritten and diverged
+
+from __future__ import annotations
+from typing import Optional
 
 from math import floor
 
@@ -244,7 +253,10 @@ class BitField(SVGBase):
                     max_count = max(max_count, 1)
         return max_count
 
-    def render(self, desc, opt=Options()):
+    def render(self, desc, opt: Optional[Options] = None):
+        if opt is None:
+            opt = Options()
+
         self.opt = opt
 
         # Compute extra per-lane space needed if there are more than one attr

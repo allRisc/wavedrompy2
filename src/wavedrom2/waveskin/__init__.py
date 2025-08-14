@@ -30,6 +30,7 @@ __all__ = [
     "NARROWERER_WAVESKIN",
 ]
 
+
 def get_wave_skin(style_name: str) -> list:
     """Get the wave skin by name."""
     if style_name == "dark":
