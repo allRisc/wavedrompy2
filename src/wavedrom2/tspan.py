@@ -6,15 +6,19 @@
 # This software is licensed under the MIT License.
 # See the LICENSE file in the project root for the full license text.
 
+from __future__ import annotations
+
+from html.parser import HTMLParser
+
 import svgwrite
 import svgwrite.text
 from svgwrite.base import BaseElement
 from svgwrite.etree import etree
+
 from .attrdict import AttrDict
-from html.parser import HTMLParser
 
 
-class TspanParser(HTMLParser, object):
+class TspanParser(HTMLParser):
     tags = {
         "o": {"text_decoration": "overline"},
         "ins": {"text_decoration": "underline"},
@@ -27,7 +31,7 @@ class TspanParser(HTMLParser, object):
     }
 
     def __init__(self) -> None:
-        super(TspanParser, self).__init__()
+        super().__init__()
         self.text: list[svgwrite.text.TSpan] = []
         self.state = []
 
@@ -36,7 +40,7 @@ class TspanParser(HTMLParser, object):
 
     def handle_endtag(self, tag):
         if self.state.pop() != tag:
-            raise RuntimeError("Unexpected closing tag: {}".format(tag))
+            raise RuntimeError(f"Unexpected closing tag: {tag}")
 
     def get_style(self):
         return {k: v for d in [self.tags[t] for t in self.state] for k, v in d.items()}
@@ -59,7 +63,7 @@ class JsonMLElement(BaseElement):
         self._jsonml = self.extract_element(source)
         self.elementname = self._jsonml.tagname
         self._jsonml.attributes.update(extra)
-        super(JsonMLElement, self).__init__(**extra)
+        super().__init__(**extra)
 
     def extract_element(self, e):
         """Extract AttrDict from jsonml

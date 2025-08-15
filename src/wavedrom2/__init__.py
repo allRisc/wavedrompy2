@@ -7,19 +7,19 @@
 # See the LICENSE file in the project root for the full license text.
 
 from __future__ import annotations
-from typing import Optional, IO, AnyStr
 
 import argparse
 import json
-import yaml
-import sys
 import os
+import sys
+from typing import IO, AnyStr
 
 import svgwrite
+import yaml
 
-from .waveform import WaveDrom
 from .assign import Assign
 from .bitfield import BitField
+from .waveform import WaveDrom
 
 
 def fix_quotes(bad_string: str) -> str:
@@ -31,7 +31,7 @@ def fix_quotes(bad_string: str) -> str:
 
 def render(
     source: str = "",
-    output: Optional[list] = None,
+    output: list | None = None,
     strict_js_features: bool = False
 ) -> svgwrite.Drawing:
     if output is None:
@@ -57,7 +57,7 @@ def render_write(source: IO[str], output: IO[AnyStr], strict_js_features: bool =
 
 def render_file(source: os.PathLike, output: os.PathLike, strict_js_features: bool = False) -> None:
     out = open(output, "w")
-    render_write(open(source, "r"), out, strict_js_features=strict_js_features)
+    render_write(open(source), out, strict_js_features=strict_js_features)
     out.close()
 
 

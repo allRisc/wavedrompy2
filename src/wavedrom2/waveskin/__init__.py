@@ -14,7 +14,6 @@ from .narrow import NARROW_CSS, NARROW_WAVESKIN
 from .narrower import NARROWER_CSS, NARROWER_WAVESKIN
 from .narrowerer import NARROWERER_CSS, NARROWERER_WAVESKIN
 
-
 __all__ = [
     "DARK_CSS",
     "DARK_WAVESKIN",

@@ -11,16 +11,15 @@
 # Now many parts have been rewritten and diverged
 
 from __future__ import annotations
-from typing import Optional
 
 from collections import namedtuple
 
 import svgwrite
-import svgwrite.path
-import svgwrite.text
-import svgwrite.container
 import svgwrite.base
+import svgwrite.container
+import svgwrite.path
 import svgwrite.shapes
+import svgwrite.text
 
 
 class RenderState:
@@ -30,7 +29,7 @@ class RenderState:
         self.xmax = xmax
 
     def __str__(self):
-        return "x={} y={}, xmax={}".format(self.x, self.y, self.xmax)
+        return f"x={self.x} y={self.y}, xmax={self.xmax}"
 
 
 RenderObject = namedtuple("RenderObject", "name x y")
@@ -93,14 +92,12 @@ class Assign:
             if type in circled:
                 path = svgwrite.path.Path(
                     class_="gate",
-                    d="m -16,{} 16,0 0,{} -16,0 z {}".format(
-                        ymin - 3, ymax - ymin + 6, circle
-                    ),
+                    d=f"m -16,{ymin - 3} 16,0 0,{ymax - ymin + 6} -16,0 z {circle}",
                 )
             else:
                 path = svgwrite.path.Path(
                     class_="gate",
-                    d="m -16,{} 16,0 0,{} -16,0 z".format(ymin - 3, ymax - ymin + 6),
+                    d=f"m -16,{ymin - 3} 16,0 0,{ymax - ymin + 6} -16,0 z",
                 )
             g.add(path)
             tspan = svgwrite.text.TSpan(iec[type], x=[-14], y=[4], class_="wirename")
@@ -125,18 +122,18 @@ class Assign:
         g = svgwrite.container.Group(transform="translate(16, 0)")
         g.add(
             svgwrite.path.Path(
-                d="M {},{} {},{}".format(spec[2][0], ymin, spec[2][0], ymax),
+                d=f"M {spec[2][0]},{ymin} {spec[2][0]},{ymax}",
                 class_="wire",
             )
         )
         ret.add(g)
 
         for s in spec[2:]:
-            path = svgwrite.path.Path(d="m {},{} 16,0".format(s[0], s[1]), class_="wire")
+            path = svgwrite.path.Path(d=f"m {s[0]},{s[1]} 16,0", class_="wire")
             ret.add(svgwrite.container.Group().add(path))
 
         g = svgwrite.container.Group(
-            transform="translate({}, {})".format(spec[1][0], spec[1][1])
+            transform=f"translate({spec[1][0]}, {spec[1][1]})"
         )
         g.add(svgwrite.base.Title(spec[0]))
         g.add(self.draw_body(spec[0], ymin - spec[1][1], ymax - spec[1][1]))
@@ -165,7 +162,7 @@ class Assign:
             fname = tree.name
             fx = 32 * (xmax - tree.x)
             fy = 8 * tree.y
-            g = svgwrite.container.Group(transform="translate({}, {})".format(fx, fy))
+            g = svgwrite.container.Group(transform=f"translate({fx}, {fy})")
             g.add(svgwrite.base.Title(fname))
             g.add(svgwrite.path.Path(d="M 2,0 a 2,2 0 1 1 -4,0 2,2 0 1 1 4,0 z"))
             tspan = svgwrite.text.TSpan(fname, x=[-4], y=[4], class_="pinname")
@@ -176,7 +173,7 @@ class Assign:
 
         return ret
 
-    def render(self, index: int = 0, source: Optional[dict] = None, output: Optional[list] = None):
+    def render(self, index: int = 0, source: dict | None = None, output: list | None = None):
         if source is None:
             source = {}
         if output is None:
@@ -215,9 +212,9 @@ class Assign:
         for t in tree:
             content = self.draw_boxes(t, xmax)
 
-        attr = {"viewBox": "0,0,{},{}".format(width, height)}
+        attr = {"viewBox": f"0,0,{width},{height}"}
         template = svgwrite.Drawing(
-            id="svgcontent_{index}".format(index=index), size=[width, height], **attr
+            id=f"svgcontent_{index}", size=[width, height], **attr
         )
         template.defs.add(svgwrite.container.Style(content=STYLE))
         g = svgwrite.container.Group(transform="translate(0.5, 0.5)")

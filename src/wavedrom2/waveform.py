@@ -11,19 +11,20 @@
 # Now many parts have been rewritten and diverged
 
 from __future__ import annotations
-from typing import Optional
 
-import sys
 import math
 import re
-from itertools import chain
-import svgwrite
-from .attrdict import AttrDict
+import sys
 from collections import deque
+from itertools import chain
+
+import svgwrite
 
 from wavedrom2 import svg
-from .tspan import JsonMLElement
+
 from . import waveskin
+from .attrdict import AttrDict
+from .tspan import JsonMLElement
 
 
 class WaveDrom:
@@ -91,7 +92,7 @@ class WaveDrom:
 
             if stretch > 0:
                 return list(
-                    chain.from_iterable(([w] + [getBrick(w)] * stretch for w in wave))
+                    chain.from_iterable([w] + [getBrick(w)] * stretch for w in wave)
                 )
             else:
                 return wave
@@ -280,7 +281,7 @@ class WaveDrom:
     def render_lane_uses(self, val, g):
         if val[1]:
             for i in range(len(val[1])):
-                b = svg.Use(href="#{}".format(val[1][i]))
+                b = svg.Use(href=f"#{val[1][i]}")
                 if i * self.lane.xs:
                     b.translate(i * self.lane.xs)
                 g.add(b)
@@ -294,7 +295,7 @@ class WaveDrom:
                             title = svg.Text(
                                 "", x=[tx], y=[self.lane.ym], text_anchor="middle"
                             )
-                            title.add(svg.Tspan(val[2][k]))
+                            title.add(svg.TSpan(val[2][k]))
                             title["xml:space"] = "preserve"
                             g.add(title)
 
@@ -830,13 +831,13 @@ class WaveDrom:
             name = val[0][0].strip()
             if name is not None:
                 dy = self.lane.y0 + j * self.lane.yo
-                g = svg.Group(id="wavelane_{j}_{index}".format(j=j, index=index))
+                g = svg.Group(id=f"wavelane_{j}_{index}")
                 if dy != 0:
                     g.translate(0, dy)
                 title = svg.Text(
                     "", x=[self.lane.tgo], y=[self.lane.ym], text_anchor="end"
                 )
-                title.add(svg.Tspan(name))
+                title.add(svg.TSpan(name))
                 title["xml:space"] = "preserve"
                 title["class"] = "info"
                 g.add(title)
@@ -850,7 +851,7 @@ class WaveDrom:
                     else -2 * xoffset
                 )
                 gg = svg.Group(
-                    id="wavelane_draw_{j}_{index}".format(j=j, index=index)
+                    id=f"wavelane_draw_{j}_{index}"
                 )
                 if xoffset * self.lane.xs != 0:
                     gg.translate(xoffset * self.lane.xs, 0)
@@ -877,7 +878,7 @@ class WaveDrom:
             )
             tmark["xml:space"] = "preserve"
             if isinstance(cxt[anchor]["text"], str):
-                tmark.add(svg.Tspan(cxt[anchor]["text"]))
+                tmark.add(svg.TSpan(cxt[anchor]["text"]))
             else:
                 tmark.add(JsonMLElement(cxt[anchor]["text"]))
             g.add(tmark)
@@ -946,7 +947,7 @@ class WaveDrom:
             elif len(e) == 2:
                 ret = self.element[e[0]](e[1])
             else:
-                ret = svg.Tspan(e)
+                ret = svg.TSpan(e)
             return ret
 
         mstep = 2 * int(self.lane.hscale)
@@ -954,13 +955,13 @@ class WaveDrom:
         marks = int(self.lane.xmax / mstep)
         gy = len(content) * int(self.lane.yo)
 
-        g = svg.Group(id="gmarks_{}".format(index))
+        g = svg.Group(id=f"gmarks_{index}")
         gmarklines = svg.Group(style="stroke:#888;stroke-width:0.5;stroke-dasharray:1,3")
 
         for i in range(marks + 1):
             print(i * mmstep)
             gg = svg.Line(
-                id="gmark_{i}_{index}".format(i=i, index=index),
+                id=f"gmark_{i}_{index}",
                 start=(i * mmstep, 0),
                 end=(i * mmstep, gy)
             )
@@ -979,14 +980,14 @@ class WaveDrom:
 
     def render_labels(self, root, source, index):
         if source:
-            gg = svg.Group(id="labels_{index}".format(index=index))
+            gg = svg.Group(id=f"labels_{index}")
 
             for idx, val in enumerate(source):
                 self.lane.period = val.get("period", 1)
                 self.lane.phase = val.get("phase", 0) * 2
 
                 dy = self.lane.y0 + idx * self.lane.yo
-                g = svg.Group(id="labels_{i}_{index}".format(i=idx, index=index))
+                g = svg.Group(id=f"labels_{idx}_{index}")
                 g.translate(0, dy)
 
                 label = val.get("label")
@@ -1062,173 +1063,64 @@ class WaveDrom:
         pattern = {
             "-": {},
             "~": {
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(0.7 * dx),
-                    dy=0,
-                    dxx=(0.3 * dx),
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                )
+                "d": f"M {frm.x},{frm.y} c {0.7 * dx},{0} {0.3 * dx},{dy} {dx},{dy}"
             },
             "-~": {
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(0.7 * dx),
-                    dy=0,
-                    dxx=dx,
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                )
+                "d": f"M {frm.x},{frm.y} c {0.7 * dx},{0} {dx},{dy} {dx},{dy}"
             },
             "~-": {
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=0,
-                    dy=0,
-                    dxx=(0.3 * dx),
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                )
+                "d": f"M {frm.x},{frm.y} c {0},{0} {0.3 * dx},{dy} {dx},{dy}"
             },
             "-|": {
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy}".format(
-                    fx=frm.x, fy=frm.y, dx=dx, dy=0, dxx=0, dyy=dy
-                )
+                "d": f"m {frm.x},{frm.y} {dx},{0} {0},{dy}"
             },
             "|-": {
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy}".format(
-                    fx=frm.x, fy=frm.y, dx=0, dy=dy, dxx=dx, dyy=0
-                )
+                "d": f"m {frm.x},{frm.y} {0},{dy} {dx},{0}"
             },
             "-|-": {
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(dx / 2),
-                    dy=0,
-                    dxx=0,
-                    dyy=dy,
-                    dxxx=(dx / 2),
-                    dyyy=0,
-                )
+                "d": f"m {frm.x},{frm.y} {dx / 2},{0} {0},{dy} {dx / 2},{0}"
             },
             "->": {"style": const_style.a},
             "~>": {
                 "style": const_style.a,
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(0.7 * dx),
-                    dy=0,
-                    dxx=(0.3 * dx),
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                ),
+                "d": f"M {frm.x},{frm.y} c {0.7 * dx},{0} {0.3 * dx},{dy} {dx},{dy}",
             },
             "-~>": {
                 "style": const_style.a,
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(0.7 * dx),
-                    dy=0,
-                    dxx=dx,
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                ),
+                "d": f"M {frm.x},{frm.y} c {0.7 * dx},{0} {dx},{dy} {dx},{dy}",
             },
             "~->": {
                 "style": const_style.a,
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=0,
-                    dy=0,
-                    dxx=(0.3 * dx),
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                ),
+                "d": f"M {frm.x},{frm.y} c {0},{0} {0.3 * dx},{dy} {dx},{dy}",
             },
             "-|>": {
                 "style": const_style.a,
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy}".format(
-                    fx=frm.x, fy=frm.y, dx=dx, dy=0, dxx=0, dyy=dy
-                ),
+                "d": f"m {frm.x},{frm.y} {dx},{0} {0},{dy}",
             },
             "|->": {
                 "style": const_style.a,
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy}".format(
-                    fx=frm.x, fy=frm.y, dx=0, dy=dy, dxx=dx, dyy=0
-                ),
+                "d": f"m {frm.x},{frm.y} {0},{dy} {dx},{0}",
             },
             "-|->": {
                 "style": const_style.a,
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(dx / 2),
-                    dy=0,
-                    dxx=0,
-                    dyy=dy,
-                    dxxx=(dx / 2),
-                    dyyy=0,
-                ),
+                "d": f"m {frm.x},{frm.y} {dx / 2},{0} {0},{dy} {dx / 2},{0}",
             },
             "<->": {"style": const_style.b},
             "<~>": {
                 "style": const_style.b,
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(0.7 * dx),
-                    dy=0,
-                    dxx=(0.3 * dx),
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                ),
+                "d": f"M {frm.x},{frm.y} c {0.7 * dx},{0} {0.3 * dx},{dy} {dx},{dy}",
             },
             "<-~>": {
                 "style": const_style.b,
-                "d": "M {fx},{fy} c {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(0.7 * dx),
-                    dy=0,
-                    dxx=dx,
-                    dyy=dy,
-                    dxxx=dx,
-                    dyyy=dy,
-                ),
+                "d": f"M {frm.x},{frm.y} c {0.7 * dx},{0} {dx},{dy} {dx},{dy}",
             },
             "<-|>": {
                 "style": const_style.b,
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy}".format(
-                    fx=frm.x, fy=frm.y, dx=dx, dy=0, dxx=0, dyy=dy
-                ),
+                "d": f"m {frm.x},{frm.y} {dx},{0} {0},{dy}",
             },
             "<-|->": {
                 "style": const_style.b,
-                "d": "m {fx},{fy} {dx},{dy} {dxx},{dyy} {dxxx},{dyyy}".format(
-                    fx=frm.x,
-                    fy=frm.y,
-                    dx=(dx / 2),
-                    dy=0,
-                    dxx=0,
-                    dyy=dy,
-                    dxxx=(dx / 2),
-                    dyyy=0,
-                ),
+                "d": f"m {frm.x},{frm.y} {dx / 2},{0} {0},{dy} {dx / 2},{0}",
             },
         }
 
@@ -1237,9 +1129,7 @@ class WaveDrom:
                 "lx": lx,
                 "ly": ly,
                 "style": "fill:none;stroke:#00F;stroke-width:1",
-                "d": "M {fx},{fy} {tx},{ty}".format(
-                    fx=frm.x, fy=frm.y, tx=to.x, ty=to.y
-                ),
+                "d": f"M {frm.x},{frm.y} {to.x},{to.y}",
             }
         )
 
@@ -1261,14 +1151,14 @@ class WaveDrom:
 
     def render_arc(self, Edge, frm, to, shapeProps):
         return svg.Path(
-            id="gmark_{frm}_{to}".format(frm=Edge.frm, to=Edge.to),
+            id=f"gmark_{Edge.frm}_{Edge.to}",
             d=shapeProps.d,
             style=shapeProps.style,
         )
 
     def render_label(self, p, text):
         w = self.text_width(text, 11) + 2
-        g = svg.Group(transform="translate({},{})".format(p.x, p.y))
+        g = svg.Group(transform=f"translate({p.x},{p.y})")
         # todo: I don't think this is correct. reported:
         # https://github.com/wavedrom/wavedrom/issues/252
         rect = svg.Rect(
@@ -1277,7 +1167,7 @@ class WaveDrom:
         label = svg.Text(
             "", style="font-size:11px;", text_anchor="middle", y=[3]
         )
-        label.add(svg.Tspan(text))
+        label.add(svg.TSpan(text))
         g.add(rect)
         g.add(label)
         return g
@@ -1321,7 +1211,7 @@ class WaveDrom:
                             Events[eventname] = AttrDict({"x": str(x), "y": str(y)})
                         pos += step
 
-            gg = svg.Group(id="wavearcs_{index}".format(index=index))
+            gg = svg.Group(id=f"wavearcs_{index}")
 
             if top.get("edge"):
                 for val in top["edge"]:
@@ -1356,7 +1246,7 @@ class WaveDrom:
 
             return gg
 
-    def parse_config(self, source: Optional[dict] = None):
+    def parse_config(self, source: dict | None = None):
         if source is None:
             source = {}
         self.lane.hscale = 1
@@ -1412,7 +1302,7 @@ class WaveDrom:
                 self.lane.yf1 = 46
                 self.lane.foot["text"] = source["foot"]["text"]
 
-    def rec(self, tmp: Optional[list] = None, state: Optional[dict] = None):
+    def rec(self, tmp: list | None = None, state: dict | None = None):
         if tmp is None:
             tmp = []
         if state is None:
@@ -1486,7 +1376,7 @@ class WaveDrom:
         skinname = source.get("config", {"skin": "default"}).get("skin", "default")
         skin = waveskin.get_wave_skin(skinname)
 
-        template = svgwrite.Drawing(id="svgcontent_{index}".format(index=index))
+        template = svgwrite.Drawing(id=f"svgcontent_{index}")
         if index == 0:
             template.add(template.style(skin[2][2]))
             [template.defs.add(get_container(e)) for e in skin[3][1:]]
@@ -1502,8 +1392,8 @@ class WaveDrom:
 
     def insert_svg_template(self,
         index: int = 0,
-        parent: Optional[list] = None,
-        source: Optional[dict] = None
+        parent: list | None = None,
+        source: dict | None = None
     ):
         if parent is None:
             parent = []
@@ -1539,18 +1429,18 @@ class WaveDrom:
                 ],
             ]
 
-        e[-1][1]["id"] = "waves_{index}".format(index=index)
-        e[-1][2][1]["id"] = "lanes_{index}".format(index=index)
-        e[-1][3][1]["id"] = "groups_{index}".format(index=index)
-        e[1]["id"] = "svgcontent_{index}".format(index=index)
+        e[-1][1]["id"] = f"waves_{index}"
+        e[-1][2][1]["id"] = f"lanes_{index}"
+        e[-1][3][1]["id"] = f"groups_{index}"
+        e[1]["id"] = f"svgcontent_{index}"
         e[1]["height"] = 0
 
         parent.extend(e)
 
     def render_waveform(self,
         index: int = 0,
-        source: Optional[dict] = None,
-        output: Optional[list] = None,
+        source: dict | None = None,
+        output: list | None = None,
         strict_js_features=False
     ):
         if source is None:
@@ -1560,9 +1450,9 @@ class WaveDrom:
 
         if source.get("signal"):
             template = self.another_template(index, source)
-            waves = template.g(id="waves_{index}".format(index=index))
-            lanes = template.g(id="lanes_{index}".format(index=index))
-            groups = template.g(id="groups_{index}".format(index=index))
+            waves = template.g(id=f"waves_{index}")
+            lanes = template.g(id=f"lanes_{index}")
+            groups = template.g(id=f"groups_{index}")
             self.parse_config(source)
             ret = AttrDict(
                 {"x": 0, "y": 0, "xmax": 0, "width": [], "lanes": [], "groups": []}
@@ -1612,7 +1502,7 @@ class WaveDrom:
             template.add(waves)
             return template
 
-    def render_groups(self, root=Optional[list], groups: Optional[list] = None, index: int = 0):
+    def render_groups(self, root: list | None = None, groups: list | None = None, index: int = 0):
         if root is None:
             root = []
         if groups is None:
@@ -1624,10 +1514,8 @@ class WaveDrom:
             dy = val["y"] * self.lane.yo + 3.5 + self.lane.yh0 + self.lane.yh1
             h = int(val["height"] * self.lane.yo - 16)
             group = svg.Path(
-                id="group_{i}_{index}".format(i=i, index=index),
-                d="m {dx},{dy} c -3,0 -5,2 -5,5 l 0,{h} c 0,3 2,5 5,5".format(
-                    dx=dx, dy=dy, h=h
-                ),
+                id=f"group_{i}_{index}",
+                d=f"m {dx},{dy} c -3,0 -5,2 -5,5 l 0,{h} c 0,3 2,5 5,5",
                 style="stroke:#0041c4;stroke-width:1;fill:none",
             )
 
@@ -1647,7 +1535,7 @@ class WaveDrom:
             t = svg.Text("", text_anchor="middle")
             t["class"] = "info"
             t["xml:space"] = "preserve"
-            t.add(svg.Tspan(name))
+            t.add(svg.TSpan(name))
             gg.add(t)
             label.add(gg)
             group_root.add(label)
@@ -1686,7 +1574,7 @@ class WaveDrom:
 
     def render_gaps(self, source, index):
         if source:
-            gg = svg.Group(id="wavegaps_{index}".format(index=index))
+            gg = svg.Group(id=f"wavegaps_{index}")
 
             for idx, val in enumerate(source):
                 self.lane.period = val.get("period", 1)
@@ -1694,7 +1582,7 @@ class WaveDrom:
 
                 dy = self.lane.y0 + idx * self.lane.yo
                 g = svg.Group(
-                    id="wavegap_{i}_{index}".format(i=idx, index=index)
+                    id=f"wavegap_{idx}_{index}"
                 )
                 g.translate(0, dy)
 
@@ -1711,29 +1599,25 @@ class WaveDrom:
         if type(root) is list:
             if len(root) >= 2 and type(root[1]) is dict:
                 if len(root) == 2:
-                    svg_output += "<{}{}/>\n".format(
-                        root[0], self.convert_to_svg(root[1])
-                    )
+                    svg_output += f"<{root[0]}{self.convert_to_svg(root[1])}/>\n"
                 elif len(root) >= 3:
-                    svg_output += "<{}{}/>\n".format(
-                        root[0], self.convert_to_svg(root[1])
-                    )
+                    svg_output += f"<{root[0]}{self.convert_to_svg(root[1])}/>\n"
                     if len(root) == 3:
                         svg_output += self.convert_to_svg(root[2])
                     else:
                         svg_output += self.convert_to_svg(root[2:])
-                    svg_output += "</{}>\n".format(root[0])
+                    svg_output += f"</{root[0]}>\n"
             elif type(root[0]) is list:
                 for eleml in root:
                     svg_output += self.convert_to_svg(eleml)
             else:
-                svg_output += "<{}>\n".format(root[0])
+                svg_output += f"<{root[0]}>\n"
                 for eleml in root[1:]:
                     svg_output += self.convert_to_svg(eleml)
-                svg_output += "</{}>\n".format(root[0])
+                svg_output += f"</{root[0]}>\n"
         elif type(root) is dict:
             for elemd in root:
-                svg_output += ' {}="{}"'.format(elemd, root[elemd])
+                svg_output += f' {elemd}="{root[elemd]}"'
         else:
             svg_output += root
 

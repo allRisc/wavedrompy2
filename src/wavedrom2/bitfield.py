@@ -11,13 +11,13 @@
 # Now many parts have been rewritten and diverged
 
 from __future__ import annotations
-from typing import Optional
 
 from math import floor
 
 import svgwrite
 
 from wavedrom2 import svg
+
 from .tspan import TspanParser
 
 
@@ -50,7 +50,7 @@ colors = {2: "FF0000", 3: "AAFF00", 4: "00FFD5", 5: "FFBF00", 6: "00FF1A", 7: "0
 
 def type_style(t):
     if t in colors.keys():
-        return ";fill:#{}".format(colors[t])
+        return f";fill:#{colors[t]}"
     else:
         return ""
 
@@ -116,16 +116,16 @@ class BitField:
     def labelArr(self, desc):
         step = self.opt.hspace / self.mod
         bits = svg.Group(
-            transform="translate({},{})".format(step / 2, self.opt.vspace / 5)
+            transform=f"translate({step / 2},{self.opt.vspace / 5})"
         )
         names = svg.Group(
-            transform="translate({},{})".format(step / 2, self.opt.vspace / 2 + 4)
+            transform=f"translate({step / 2},{self.opt.vspace / 2 + 4})"
         )
         attrs = svg.Group(
-            transform="translate({},{})".format(step / 2, self.opt.vspace)
+            transform=f"translate({step / 2},{self.opt.vspace})"
         )
         blanks = svg.Group(
-            transform="translate(0,{})".format(self.opt.vspace / 4)
+            transform=f"translate(0,{self.opt.vspace / 4})"
         )
 
         for e in desc:
@@ -199,7 +199,7 @@ class BitField:
             stroke="black",
             stroke_width=1,
             stroke_linecap="round",
-            transform="translate(0,{})".format(vspace / 4),
+            transform=f"translate(0,{vspace / 4})",
         )
 
         g.add(self.hline(hspace))
@@ -232,7 +232,7 @@ class BitField:
             i = self.opt.lanes - self.index - 1
         y = i * self.opt.vspace + 0.5
         g = svg.Group(
-            transform="translate({},{})".format(x, y),
+            transform=f"translate({x},{y})",
             text_anchor="middle",
             font_size=self.opt.fontsize,
             font_family=self.opt.fontfamily,
@@ -253,7 +253,7 @@ class BitField:
                     max_count = max(max_count, 1)
         return max_count
 
-    def render(self, desc, opt: Optional[Options] = None):
+    def render(self, desc, opt: Options | None = None):
         if opt is None:
             opt = Options()
 

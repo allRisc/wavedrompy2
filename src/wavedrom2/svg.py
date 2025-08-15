@@ -8,12 +8,11 @@
 
 from __future__ import annotations
 
-from svgwrite.container import Defs, Group, Marker, Use
-from svgwrite.shapes import Rect, Line
-from svgwrite.text import Text, TSpan
 from svgwrite.base import Title
+from svgwrite.container import Defs, Group, Marker, Use
 from svgwrite.path import Path
-
+from svgwrite.shapes import Line, Rect
+from svgwrite.text import Text, TSpan
 
 __all__ = [
     "Defs",

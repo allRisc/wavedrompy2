@@ -32,36 +32,41 @@ classifiers = [
     "Topic :: Documentation",
     "Topic :: Utilities",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 
 dependencies = [
     "pyyaml>=6.0.1",
     "svgwrite>=1.4.3",
 ]
 
+
 [project.urls]
     Homepage = "https://github.com/allrisc/wavedrompy2"
     Source = "https://github.com/allrisc/wavedrompy2"
     Download = "https://pypi.org/project/wavedrom2/"
 
-[project.optional-dependencies]
-CairoSVG = [
-    "cairosvg>=1.0",
-]
 
 [dependency-groups]
 dev = [
-    "demjson3>=3.0.6",
-    "flake8>=3.9.2",
-    "lxml-stubs>=0.5.1",
-    "mypy>=1.4.1",
-    "pillow>=9.5.0",
-    "pytest>=7.4.4",
     "ruff>=0.12.8",
+    "tox>=4.25.0",
+    "tox-uv>=1.13.1",
+]
+docs=[
     "sphinx>=5.3.0",
     "sphinx-rtd-theme>=2.0.0",
-    "types-pyyaml>=6.0.12.12",
+]
+tests=[
+    "pytest>=7.4.4",
+    "demjson3>=3.0.6",
     "xmldiff>=2.6.3",
+    "pillow>=9.5.0",
+    "cairosvg>=1.0",
+]
+typing=[
+    "lxml-stubs>=0.5.1",
+    "mypy>=1.4.1",
+    "types-pyyaml>=6.0.12.12",
 ]
 
 [project.scripts]
@@ -72,22 +77,38 @@ wavedrompy2="wavedrom2:main"
 # Tooling
 ####################################################################################################
 
+[tool.uv]
+default-groups = ["dev", "docs", "tests", "typing"]
+
+
 [tool.mypy]
 warn_return_any = true
 disallow_untyped_defs = true
+
+python_version = "3.8"
+
+files = ["src"]
+
+pretty = true
 
 [[tool.mypy.overrides]]
 module = ["svgwrite.*", "demjson3.*"]
 follow_untyped_imports = true
 
+[tool.pyright]
+pythonVersion = "3.8"
+include = ["src"]
+typeCheckingMode = "basic"
 
 [tool.ruff]
 line-length = 100
 indent-width = 4
 
 target-version = "py38"
+show-fixes = true
 
-preview = true
+src = ["src"]
+exclude = ["tests/**.py"]  # TODO: Update to include all test files
 
 [tool.ruff.format]
 quote-style = "double"
@@ -107,3 +128,43 @@ select = [
 ignore = [
     "UP038",  # keep isinstance tuple
 ]
+
+[tool.tox]
+env_list = [
+    "py3.13", "py3.12", "py3.11", "py3.10", "py3.9", "py3.8",
+    "style",
+    "typing",
+    "docs",
+]
+
+[tool.tox.env_run_base]
+description = "pytest on latest dependency versions"
+runner = "uv-venv-lock-runner"
+package = "wheel"
+wheel_build_env = ".pkg"
+constrain_package_deps = true
+use_frozen_constraints = true
+dependency_groups = ["tests"]
+
+commands = [[
+    "pytest", "-v", "--tb=short", "--basetemp={env_tmp_dir}",
+    {replace = "posargs", default = [], extend = true},
+]]
+
+[tool.tox.env.style]
+description = "run linting and style checks on code"
+dependency_groups = ["dev"]
+skip_install = true
+commands = [["ruff", "check"]]
+
+[tool.tox.env.typing]
+description = "run static type checkers"
+dependency_groups = ["typing"]
+commands = [
+    ["mypy"],
+]
+
+[tool.tox.env.docs]
+description = "build docs"
+dependency_groups = ["docs"]
+commands = [["sphinx-build", "-E", "-W", "-b", "dirhtml", "docs", "docs/_build/dirhtml"]]

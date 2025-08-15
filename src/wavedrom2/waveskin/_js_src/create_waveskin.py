@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 import json
+import os
 
 import demjson3
 
@@ -33,7 +33,7 @@ def main() -> None:
 
 
 def get_data(file_path: str) -> list:
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         data = demjson3.decode(f.read())
         if not isinstance(data, list):
             raise ValueError("Invalid data format")
