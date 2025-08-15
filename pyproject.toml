@@ -16,7 +16,7 @@ authors = [
     {name = "allRisc", email = "allrisc.dev@gmail.com" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
@@ -41,6 +41,7 @@ dependencies = [
 
 [project.urls]
     Homepage = "https://github.com/allrisc/wavedrompy2"
+    Source = "https://github.com/allrisc/wavedrompy2"
     Download = "https://pypi.org/project/wavedrom2/"
 
 [project.optional-dependencies]
@@ -95,4 +96,14 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint]
-select = ["E", "F", "B", "W"]
+select = [
+    "B",  # flake8-bugbear
+    "E",  # pycodestyle error
+    "F",  # pyflakes
+    "I",  # isort
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warning
+]
+ignore = [
+    "UP038",  # keep isinstance tuple
+]
