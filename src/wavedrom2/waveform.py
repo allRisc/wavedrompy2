@@ -11,11 +11,13 @@
 # Now many parts have been rewritten and diverged
 
 from __future__ import annotations
+from typing import Any
 
 import math
 import re
 import sys
 from collections import deque
+from dataclasses import dataclass, field
 from itertools import chain
 
 import svgwrite
@@ -27,33 +29,129 @@ from .attrdict import AttrDict
 from .tspan import JsonMLElement
 
 
+@dataclass
+class Wave:
+    """Class which represents the state of a WaveDrom waves parsed from JSON."""
+
+    x: int = 0
+    y: int = 0
+    xmax: int = 0
+    width: list[float] = field(default_factory=list)
+    lanes: list = field(default_factory=list)
+    groups: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class LaneConfig:
+    """LaneConfig holds configuration parameters for rendering a waveform lane.
+    """
+    xs: int = 20
+    """tmpgraphlane0.width"""
+
+    ys: int = 20
+    """tmpgraphlane0.height"""
+
+    xg: int = 120
+    """tmpgraphlane0.x"""
+
+    yg: int = 0
+    """head gap"""
+
+    yh0: int = 0
+    """head gap title"""
+
+    yh1: int = 0
+    """head gap"""
+
+    yf0: int = 0
+    """foot gap"""
+
+    yf1: int = 0
+    """foot gap"""
+
+    y0: int = 5
+    """tmpgraphlane0.y"""
+
+    yo: int = 30
+    """tmpgraphlane1.y - y0"""
+
+    tgo: int = -10
+    """tmptextlane0.x - xg"""
+
+    ym: int = 15
+    """tmptextlane0.y - y0"""
+
+    xlabel: int = 6
+    """tmptextlabel.x - xg"""
+
+    xmax: int = 1
+    scale: int = 1
+    head: dict = field(default_factory=dict)
+    foot: dict = field(default_factory=dict)
+    period: int = 1
+    phase: float = 0.0
+    hscale: int = 1
+    hscale0: int = 1
+    xmin_cfg: int = 0
+    xmax_cfg: int = 0
+
+# TODO: Replace render_waveform with render_signal
+def render_signal(
+        index: int = 0,
+        source: dict[str, Any] | None = None,
+        *,
+        strict_js_features: bool = False
+) -> svgwrite.Drawing:
+    if source is None:
+        source = {}
+
+    if "signal" not in source:
+        raise ValueError("Missing 'signal' key in source")
+
+    wave_svg = create_svg_template(index, source)
+
+    return wave_svg
+
+
+def create_svg_template(index: int, source: dict[str, Any]) -> svgwrite.Drawing:
+    template = svgwrite.Drawing(id=f"svgcontent_{index}")
+
+    if index == 0:
+        skinname = get_waveskin_name_from_source(source)
+        skin = waveskin.get_waveskin(skinname)
+        css = waveskin.get_waveskin_css(skinname)
+
+        template.add(svg.Style(css))
+
+        for svg_def in waveskin.get_waveskin_defs(skin):
+            if not isinstance(svg_def, list):
+                raise TypeError(f"Invalid SVG Def definition: {svg_def}")
+            template.defs.add(svg.get_container_element(svg_def))
+
+            # TODO: Add lane information or figure out where to move it?
+
+    template["class"] = "WaveDrom"
+    template["overflow"] = "hidden"
+
+    return template
+
+
+
+def get_waveskin_name_from_source(source: dict[str, Any]) -> str:
+    if "config" in source:
+        config = source["config"]
+        if "skin" in config:
+            return config["skin"]
+    return "default"
+
+
 class WaveDrom:
-    def __init__(self):
-        self.font_width = 7
-        self.lane = AttrDict(
-            {
-                "xs": 20,  # tmpgraphlane0.width
-                "ys": 20,  # tmpgraphlane0.height
-                "xg": 120,  # tmpgraphlane0.x
-                "yg": 0,  # head gap
-                "yh0": 0,  # head gap title
-                "yh1": 0,  # head gap
-                "yf0": 0,  # foot gap
-                "yf1": 0,  # foot gap
-                "y0": 5,  # tmpgraphlane0.y
-                "yo": 30,  # tmpgraphlane1.y - y0
-                "tgo": -10,  # tmptextlane0.x - xg
-                "ym": 15,  # tmptextlane0.y - y0
-                "xlabel": 6,  # tmptextlabel.x - xg
-                "xmax": 1,
-                "scale": 1,
-                "head": {},
-                "foot": {},
-            }
-        )
+    def __init__(self) -> None:
+        self.font_width: int = 7
+        self.lane: LaneConfig = LaneConfig()
 
     @staticmethod
-    def stretch_bricks(wave, stretch):
+    def stretch_bricks(wave: list, stretch: float) -> list:
         stretcher = {
             "Pclk": "111",
             "Nclk": "000",
@@ -97,7 +195,14 @@ class WaveDrom:
             else:
                 return wave
 
-    def gen_wave_brick(self, prev=None, this=None, stretch=0, repeat=0, subcycle=False):
+    def gen_wave_brick(
+        self,
+        prev: str | None = None,
+        this: str | None = None,
+        stretch: float = 0,
+        repeat: int = 0,
+        subcycle: bool = False
+    ) -> list:
         sharpedge_clk = {"p": "pclk", "n": "nclk", "P": "Pclk", "N": "Nclk"}
         sharpedge_sig = {"h": "pclk", "l": "nclk", "H": "Pclk", "L": "Nclk"}
         sharpedge = sharpedge_clk.copy()
@@ -148,7 +253,7 @@ class WaveDrom:
             "Pl": "000",
         }
 
-        if this in sharpedge.keys():
+        if this in sharpedge:
             if prev is None:
                 if this in sharpedge_clk.keys():
                     first = sharpedge[this]
@@ -157,7 +262,7 @@ class WaveDrom:
             else:
                 first = xclude.get(prev + this, sharpedge[this])
 
-            if this in sharpedge_clk.keys():
+            if this in sharpedge_clk:
                 wave = [first, clkinvert[this]] * (1 + repeat)
             else:
                 wave = [first] + [level.get(this, this) * 3] * (2 * repeat + 1)
@@ -183,7 +288,7 @@ class WaveDrom:
 
         return wave
 
-    def parse_wave_lane(self, text, stretch=0):
+    def parse_wave_lane(self, text: str, stretch: float = 0) -> list:
         R = []
 
         Stack = deque(text)
@@ -223,7 +328,7 @@ class WaveDrom:
 
         return R
 
-    def parse_wave_lanes(self, sig=""):
+    def parse_wave_lanes(self, sig: list[dict]) -> list:
         def data_extract(e):
             tmp = e.get("data")
             if tmp is not None:
@@ -231,7 +336,9 @@ class WaveDrom:
             return tmp
 
         content = []
+        print(sig)
         for sigx in sig:
+            print(sigx)
             self.lane.period = sigx.get("period", 1)
             self.lane.phase = sigx.get("phase", 0) * 2
             sub_content = []
@@ -249,7 +356,7 @@ class WaveDrom:
 
         return content
 
-    def find_lane_markers(self, lanetext=""):
+    def find_lane_markers(self, lanetext: str = "") -> list:
 
         lcount = 0
         gcount = 0
@@ -278,7 +385,7 @@ class WaveDrom:
 
         return ret
 
-    def render_lane_uses(self, val, g):
+    def render_lane_uses(self, val: list, g) -> None:
         if val[1]:
             for i in range(len(val[1])):
                 b = svg.Use(href=f"#{val[1][i]}")
@@ -299,7 +406,7 @@ class WaveDrom:
                             title["xml:space"] = "preserve"
                             g.add(title)
 
-    def text_width(self, string, size=11):
+    def text_width(self, string: str, size: int = 11) -> float:
         chars = [
             0,
             0,
@@ -821,7 +928,10 @@ class WaveDrom:
             / 100
         )
 
-    def render_wave_lane(self, content="", index=0):
+    def render_wave_lane(self, content: list | None = None, index: int = 0) -> tuple[list, list]:
+        if content is None:
+            content = []
+
         xmax = 0
         xgmax = 0
         glengths = []
@@ -867,8 +977,8 @@ class WaveDrom:
         self.lane.xg = xgmax + 20
         return (glengths, groups)
 
-    def captext(self, g, cxt, anchor, y):
-        if cxt.get(anchor) and cxt[anchor].get("text"):
+    def captext(self, g, cxt: LaneConfig, anchor: str, y: float) -> None:
+        if hasattr(cxt, anchor) and getattr(cxt, anchor).get("text"):
             tmark = svg.Text(
                 "",
                 x=[float(cxt.xmax) * float(cxt.xs) / 2],
@@ -877,19 +987,29 @@ class WaveDrom:
                 fill="#000",
             )
             tmark["xml:space"] = "preserve"
-            if isinstance(cxt[anchor]["text"], str):
-                tmark.add(svg.TSpan(cxt[anchor]["text"]))
+            if isinstance(getattr(cxt, anchor)["text"], str):
+                tmark.add(svg.TSpan(getattr(cxt, anchor)["text"]))
             else:
-                tmark.add(JsonMLElement(cxt[anchor]["text"]))
+                tmark.add(JsonMLElement(getattr(cxt, anchor)["text"]))
             g.add(tmark)
 
-    def ticktock(self, g, cxt, ref1, ref2, x, dx, y, length):
+    def ticktock(
+        self,
+        g,
+        cxt: LaneConfig,
+        ref1: str,
+        ref2: str,
+        x: float,
+        dx: float,
+        y: float,
+        length: int
+    ) -> None:
         L = []
 
-        if cxt.get(ref1) is None or cxt[ref1].get(ref2) is None:
+        if not hasattr(cxt, ref1) or getattr(cxt, ref1).get(ref2) is None:
             return
 
-        val = cxt[ref1][ref2]
+        val = getattr(cxt, ref1)[ref2]
 
         if isinstance(val, str):
             val = val.split()
@@ -939,7 +1059,10 @@ class WaveDrom:
             tmark = svg.Text(L[i], x=[i * dx + x], y=[y])
             mark_group.add(tmark)
 
-    def render_marks(self, content="", index=0):
+    def render_marks(self, content: list | None = None, index: int = 0) -> svg.Group:
+        if content is None:
+            content = []
+
         def get_elem(e):
             if len(e) == 3:
                 ret = self.element[e[0]](e[2])
@@ -978,7 +1101,7 @@ class WaveDrom:
 
         return g
 
-    def render_labels(self, root, source, index):
+    def render_labels(self, root, source: list, index: int) -> None:
         if source:
             gg = svg.Group(id=f"labels_{index}")
 
@@ -1047,7 +1170,7 @@ class WaveDrom:
                 gg.add(g)
             root.add(gg)
 
-    def arc_shape(self, Edge, frm, to):
+    def arc_shape(self, Edge: AttrDict, frm: AttrDict, to: AttrDict) -> AttrDict:
         dx = float(to.x) - float(frm.x)
         dy = float(to.y) - float(frm.y)
         lx = (float(frm.x) + float(to.x)) / 2
@@ -1149,14 +1272,14 @@ class WaveDrom:
 
         return props
 
-    def render_arc(self, Edge, frm, to, shapeProps):
+    def render_arc(self, Edge: AttrDict, frm: AttrDict, to: AttrDict, shapeProps: AttrDict):
         return svg.Path(
             id=f"gmark_{Edge.frm}_{Edge.to}",
             d=shapeProps.d,
             style=shapeProps.style,
         )
 
-    def render_label(self, p, text):
+    def render_label(self, p: AttrDict, text: str):
         w = self.text_width(text, 11) + 2
         g = svg.Group(transform=f"translate({p.x},{p.y})")
         # todo: I don't think this is correct. reported:
@@ -1172,7 +1295,7 @@ class WaveDrom:
         g.add(label)
         return g
 
-    def render_arcs(self, source, index, top):
+    def render_arcs(self, source: list, index: int, top: dict):
         Edge = AttrDict({"words": [], "frm": 0, "shape": "", "to": 0, "label": ""})
         Events = AttrDict({})
 
@@ -1246,11 +1369,11 @@ class WaveDrom:
 
             return gg
 
-    def parse_config(self, source: dict | None = None):
+    def parse_config(self, source: dict | None = None) -> None:
         if source is None:
             source = {}
         self.lane.hscale = 1
-        if self.lane.get("hscale0"):
+        if self.lane.hscale0:
             self.lane.hscale = self.lane.hscale0
 
         if source and source.get("config") and source.get("config").get("hscale"):
@@ -1302,11 +1425,11 @@ class WaveDrom:
                 self.lane.yf1 = 46
                 self.lane.foot["text"] = source["foot"]["text"]
 
-    def rec(self, tmp: list | None = None, state: dict | None = None):
+    def rec(self, tmp: list | None = None, state: Wave | None = None) -> None:
         if tmp is None:
             tmp = []
         if state is None:
-            state = {}
+            state = Wave()
 
         name = None
         delta = AttrDict({"x": 10})
@@ -1319,7 +1442,7 @@ class WaveDrom:
             if isinstance(val, list):
                 old_y = state.y
                 self.rec(val, state)
-                state["groups"].append(
+                state.groups.append(
                     {
                         "x": state.xx,
                         "y": old_y,
@@ -1328,73 +1451,33 @@ class WaveDrom:
                     }
                 )
             elif isinstance(val, dict):
-                state["lanes"].append(val)
-                state["width"].append(state.x)
+                state.lanes.append(val)
+                state.width.append(state.x)
                 state.y += 1
 
         state.xx = state.x
         state.x -= delta.x
         state.name = name
 
-    def another_template(self, index, source):
-        def get_container(elem):
-            ctype = elem[0]
+    def another_template(self, index: int, source: dict) -> svgwrite.Drawing:
+        skinname = get_waveskin_name_from_source(source)
+        skin = waveskin.get_waveskin(skinname)
 
-            # TODO: Move into svg
-            if ctype == "g":
-                ret = svg.Group()
-            elif ctype == "defs":
-                ret = svg.Defs()
-            elif ctype == "marker":
-                ret = svg.Marker()
-            elif ctype == "use":
-                ret = svg.Use()
-            else:
-                raise TypeError(f"Unknown SVG element type: {ctype}")
-            ret.attribs = elem[1]
-
-            def gen_elem(e):
-                if e[0] == "path":
-                    attr = e[1]
-                    elem = svg.Path(d=attr["d"])
-                    elem.attribs = attr
-                elif e[0] == "rect":
-                    attr = e[1]
-                    x = attr["x"]
-                    y = attr["y"]
-                    w = attr["width"]
-                    h = attr["height"]
-                    elem = svg.Rect(insert=(x, y), size=(w, h))
-                    elem.attribs = attr
-
-                return elem
-
-            [ret.add(gen_elem(e)) for e in elem[2:]]
-
-            return ret
-
-        skinname = source.get("config", {"skin": "default"}).get("skin", "default")
-        skin = waveskin.get_wave_skin(skinname)
-
-        template = svgwrite.Drawing(id=f"svgcontent_{index}")
         if index == 0:
-            template.add(template.style(skin[2][2]))
-            [template.defs.add(get_container(e)) for e in skin[3][1:]]
-            self.lane.xs = int(skin[3][1][2][1]["width"])
-            self.lane.ys = int(skin[3][1][2][1]["height"])
-            self.lane.xlabel = int(skin[3][1][2][1]["x"])
-            self.lane.ym = int(skin[3][1][2][1]["y"])
+            self.lane.xs = waveskin.get_waveskin_socket_width(skin)
+            self.lane.ys = waveskin.get_waveskin_socket_height(skin)
+            self.lane.xlabel = waveskin.get_waveskin_socket_x(skin)
+            self.lane.ym = waveskin.get_waveskin_socket_y(skin)
 
-        template["class"] = "WaveDrom"
-        template["overflow"] = "hidden"
 
-        return template
+        return create_svg_template(index, source)
 
-    def insert_svg_template(self,
+    def insert_svg_template(
+        self,
         index: int = 0,
         parent: list | None = None,
         source: dict | None = None
-    ):
+    ) -> None:
         if parent is None:
             parent = []
 
@@ -1404,7 +1487,7 @@ class WaveDrom:
         e = waveskin.DEFAULT_WAVESKIN
 
         if source.get("config") and source.get("config").get("skin"):
-            e = waveskin.get_wave_skin(source.get("config").get("skin"))
+            e = waveskin.get_waveskin(source.get("config").get("skin"))
 
         if index == 0:
             self.lane.xs = int(e[3][1][2][1]["width"])
@@ -1437,72 +1520,80 @@ class WaveDrom:
 
         parent.extend(e)
 
-    def render_waveform(self,
+    def render_waveform(
+        self,
         index: int = 0,
         source: dict | None = None,
         output: list | None = None,
-        strict_js_features=False
-    ):
+        strict_js_features: bool = False
+    ) -> svgwrite.Drawing:
         if source is None:
             source = {}
 
         xmax = 0
 
-        if source.get("signal"):
-            template = self.another_template(index, source)
-            waves = template.g(id=f"waves_{index}")
-            lanes = template.g(id=f"lanes_{index}")
-            groups = template.g(id=f"groups_{index}")
-            self.parse_config(source)
-            ret = AttrDict(
-                {"x": 0, "y": 0, "xmax": 0, "width": [], "lanes": [], "groups": []}
-            )
-            self.rec(source["signal"], ret)  # parse lanes
-            content = self.parse_wave_lanes(ret.lanes)
-            (glengths, lanegroups) = self.render_wave_lane(content, index)
-            for i, val in enumerate(glengths):
-                xmax = max(xmax, (val + ret.width[i]))
-            marks = self.render_marks(content, index)
-            gaps = self.render_gaps(ret.lanes, index)
-            if not strict_js_features:
-                self.render_labels(lanes, ret.lanes, index)
-            arcs = self.render_arcs(ret.lanes, index, source)
+        if "signal" not in source:
+            raise ValueError("Invalid WaveDrom Waveform source")
 
-            # Render
-            lanes.add(marks)
-            [lanes.add(lane) for lane in lanegroups]
-            lanes.add(arcs)
-            lanes.add(gaps)
+        template = self.another_template(index, source)
+        waves = svg.Group(id=f"waves_{index}")
+        lanes = svg.Group(id=f"lanes_{index}")
+        groups = svg.Group(id=f"groups_{index}")
+        self.parse_config(source)
 
-            self.render_groups(groups, ret.groups, index)
-            self.lane.xg = (
-                int(math.ceil(float(xmax - self.lane.tgo) / float(self.lane.xs)))
-                * self.lane.xs
-            )
-            width = self.lane.xg + self.lane.xs * (self.lane.xmax + 1)
-            height = (
-                len(content) * self.lane.yo
-                + self.lane.yh0
-                + self.lane.yh1
-                + self.lane.yf0
-                + self.lane.yf1
-            )
-            template["width"] = width
-            template["height"] = height
-            template.viewbox(0, 0, width, height)
-            dx = self.lane.xg + 0.5
-            dy = float(self.lane.yh0) + float(self.lane.yh1) + 0.5
-            lanes.translate(dx, dy)
+        ret = Wave()  # TODO: Rename ret
 
-            waves.add(svg.Rect(
-                size=(width, height), style="stroke:none;fill:white"
-            ))
-            waves.add(lanes)
-            waves.add(groups)
-            template.add(waves)
-            return template
+        self.rec(source["signal"], ret)  # parse lanes
+        content = self.parse_wave_lanes(ret.lanes)
+        (glengths, lanegroups) = self.render_wave_lane(content, index)
+        for i, val in enumerate(glengths):
+            xmax = max(xmax, (val + ret.width[i]))
+        marks = self.render_marks(content, index)
+        gaps = self.render_gaps(ret.lanes, index)
+        if not strict_js_features:
+            self.render_labels(lanes, ret.lanes, index)
+        arcs = self.render_arcs(ret.lanes, index, source)
 
-    def render_groups(self, root: list | None = None, groups: list | None = None, index: int = 0):
+        # Render
+        lanes.add(marks)
+        [lanes.add(lane) for lane in lanegroups]
+        lanes.add(arcs)
+        lanes.add(gaps)
+
+        self.render_groups(groups, ret.groups, index)
+        self.lane.xg = (
+            int(math.ceil(float(xmax - self.lane.tgo) / float(self.lane.xs)))
+            * self.lane.xs
+        )
+        width = self.lane.xg + self.lane.xs * (self.lane.xmax + 1)
+        height = (
+            len(content) * self.lane.yo
+            + self.lane.yh0
+            + self.lane.yh1
+            + self.lane.yf0
+            + self.lane.yf1
+        )
+        template["width"] = width
+        template["height"] = height
+        template.viewbox(0, 0, width, height)
+        dx = self.lane.xg + 0.5
+        dy = float(self.lane.yh0) + float(self.lane.yh1) + 0.5
+        lanes.translate(dx, dy)
+
+        waves.add(svg.Rect(
+            size=(width, height), style="stroke:none;fill:white"
+        ))
+        waves.add(lanes)
+        waves.add(groups)
+        template.add(waves)
+        return template
+
+    def render_groups(
+        self,
+        root: list | None = None,
+        groups: list | None = None,
+        index: int = 0
+    ) -> None:
         if root is None:
             root = []
         if groups is None:
@@ -1540,7 +1631,7 @@ class WaveDrom:
             label.add(gg)
             group_root.add(label)
 
-    def render_gap_uses(self, wave, g):
+    def render_gap_uses(self, wave: str, g) -> None:
         subCycle = False
 
         if wave:
@@ -1572,7 +1663,7 @@ class WaveDrom:
                     b.translate(dx)
                     g.add(b)
 
-    def render_gaps(self, source, index):
+    def render_gaps(self, source: list, index: int):
         if source:
             gg = svg.Group(id=f"wavegaps_{index}")
 
@@ -1593,7 +1684,7 @@ class WaveDrom:
 
             return gg
 
-    def convert_to_svg(self, root):
+    def convert_to_svg(self, root) -> str:
         svg_output = ""
 
         if type(root) is list:

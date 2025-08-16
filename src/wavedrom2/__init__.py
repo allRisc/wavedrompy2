@@ -34,19 +34,36 @@ def render(
     output: list | None = None,
     strict_js_features: bool = False
 ) -> svgwrite.Drawing:
+    """Render a WaveDrom diagram from the provided string definition.
+
+    Args:
+        source (str, optional): The source string to use. Defaults to "".
+        output (list | None, optional): The output list to use. Defaults to None.
+        strict_js_features (bool, optional): Whether to use strict JavaScript features.
+            Defaults to False.
+
+    Raises:
+        TypeError: If the source is not a dictionary.
+        ValueError: If the source is an empty dictionary or it contains invalid data.
+
+    Returns:
+        svgwrite.Drawing: The rendered SVG drawing.
+    """
     if output is None:
         output = []
 
-    source = json.loads(fix_quotes(source))
-    if not isinstance(source, dict):
+    source_dict = json.loads(fix_quotes(source))
+    if not isinstance(source_dict, dict):
         raise TypeError("Source must be a dictionary")
 
-    if source.get("signal"):
-        return WaveDrom().render_waveform(0, source, output, strict_js_features)
-    elif source.get("assign"):
-        return Assign().render(0, source, output)
-    elif source.get("reg"):
-        return BitField().renderJson(source)
+    if "signal" in source_dict:
+        return WaveDrom().render_waveform(0, source_dict, output, strict_js_features)
+    elif "assign" in source_dict:
+        return Assign().render(0, source_dict, output)
+    elif "reg" in source_dict:
+        return BitField().renderJson(source_dict)
+    else:
+        raise ValueError("Invalid WaveDrom source")
 
 
 def render_write(source: IO[str], output: IO[AnyStr], strict_js_features: bool = False) -> None:

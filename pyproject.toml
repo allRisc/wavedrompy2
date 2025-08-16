@@ -48,6 +48,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "demjson3>=3.0.6",
     "ruff>=0.12.8",
     "tox>=4.25.0",
     "tox-uv>=1.13.1",
@@ -58,7 +59,6 @@ docs=[
 ]
 tests=[
     "pytest>=7.4.4",
-    "demjson3>=3.0.6",
     "xmldiff>=2.6.3",
     "pillow>=9.5.0",
     "cairosvg>=1.0",

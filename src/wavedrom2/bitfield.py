@@ -293,9 +293,12 @@ class BitField:
 
         return template
 
-    def renderJson(self, source):
+    def renderJson(self, source) -> svgwrite.Drawing:
         opt = Options()
-        if source.get("config"):
+        if "config" in source:
             opt = Options(**source["config"])
-        if source.get("reg"):
+
+        if "reg" in source:
             return self.render(source["reg"], opt)
+
+        raise ValueError("Invalid WaveDrom source for BitField rendering")
