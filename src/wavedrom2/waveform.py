@@ -255,6 +255,69 @@ def parse_signals(source: list[str | dict] | None = None, prev_wave: Wave | None
 
     return wave
 
+
+def get_ticktock_group(
+    cxt: LaneConfig,
+    ref1: str,
+    ref2: str,
+    x: float,
+    dx: float,
+    y: float,
+    length: int
+) -> svg.Group | None:
+    L = []
+
+    if not hasattr(cxt, ref1) or getattr(cxt, ref1).get(ref2) is None:
+        return
+
+    val = getattr(cxt, ref1)[ref2]
+
+    if isinstance(val, str):
+        val = val.split()
+    elif isinstance(val, (int, float, bool)):
+        offset = int(val)
+        val = []
+        for i in range(length):
+            val.append(i + offset)
+
+    if not isinstance(val, list) or len(val) == 0:  # TODO: Fix
+        return
+
+    if len(val) == 1:
+        offset = val[0]
+        if isinstance(offset, str):
+            L = val
+        else:
+            for i in range(length):
+                L[i] = i + offset
+    elif len(val) == 2:
+        offset = int(val[0])
+        step = int(val[1])
+        tmp = val[1].split(".")
+        if len(tmp) == 2:
+            dp = len(tmp[1])
+
+        if isinstance(offset, str) or isinstance(step, str):
+            L = val
+        else:
+            offset = step * offset
+            for i in range(length):
+                L[i] = f"{step * i + offset:.{dp}f}"
+    else:
+        L = val
+
+    mark_group = svg.Group()
+    mark_group["class"] = "muted"
+    mark_group["text-anchor"] = "middle"
+    mark_group["xml:space"] = "preserve"
+
+    for i in range(length):
+        tmark = svg.Text(L[i], x=[i * dx + x], y=[y])
+        mark_group.add(tmark)
+
+    return mark_group
+
+
 def get_waveskin_name_from_source(source: dict[str, Any]) -> str:
     if "config" in source:
         config = source["config"]
@@ -587,72 +650,6 @@ class WaveDrom:
                 tmark.add(JsonMLElement(getattr(cxt, anchor)["text"]))
             g.add(tmark)
 
-    def ticktock(
-        self,
-        g,
-        cxt: LaneConfig,
-        ref1: str,
-        ref2: str,
-        x: float,
-        dx: float,
-        y: float,
-        length: int
-    ) -> None:
-        L = []
-
-        if not hasattr(cxt, ref1) or getattr(cxt, ref1).get(ref2) is None:
-            return
-
-        val = getattr(cxt, ref1)[ref2]
-
-        if isinstance(val, str):
-            val = val.split()
-        elif isinstance(val, (int, float, bool)):
-            offset = int(val)
-            val = []
-            for i in range(length):
-                val.append(i + offset)
-
-        if type(val) is list:  # TODO: Fix
-            if len(val) == 0:
-                return
-            elif len(val) == 1:
-                offset = val[0]
-                if isinstance(offset, str):
-                    L = val
-                else:
-                    for i in range(length):
-                        L[i] = i + offset
-            elif len(val) == 2:
-                offset = int(val[0])
-                step = int(val[1])
-                tmp = val[1].split(".")
-                if len(tmp) == 2:
-                    dp = len(tmp[1])
-
-                if isinstance(offset, str) or isinstance(step, str):
-                    L = val
-                else:
-                    offset = step * offset
-                    for i in range(length):
-                        L[i] = f"{step * i + offset:.{dp}f}"
-            else:
-                L = val
-
-        else:
-            return
-
-        mark_group = svg.Group()
-        mark_group["class"] = "muted"
-        mark_group["text-anchor"] = "middle"
-        mark_group["xml:space"] = "preserve"
-
-        g.add(mark_group)
-
-        for i in range(length):
-            tmark = svg.Text(L[i], x=[i * dx + x], y=[y])
-            mark_group.add(tmark)
-
     def render_marks(self, content: list | None = None, index: int = 0) -> svg.Group:
         if content is None:
             content = []
@@ -678,10 +675,22 @@ class WaveDrom:
 
         self.captext(g, self.lane, "head", -33 if (self.lane.yh0 > 0) else -13)
         self.captext(g, self.lane, "foot", gy + (45 if (self.lane.yf0 > 0) else 25))
-        self.ticktock(g, self.lane, "head", "tick", 0, mmstep, -5, marks + 1)
-        self.ticktock(g, self.lane, "head", "tock", mmstep / 2, mmstep, -5, marks)
-        self.ticktock(g, self.lane, "foot", "tick", 0, mmstep, gy + 15, marks + 1)
-        self.ticktock(g, self.lane, "foot", "tock", mmstep / 2, mmstep, gy + 15, marks)
+        if (tt_group := get_ticktock_group(
+                self.lane, "head", "tick", 0, mmstep, -5, marks + 1
+        )):
+            g.add(tt_group)
+        if (tt_group := get_ticktock_group(
+                self.lane, "head", "tock", mmstep / 2, mmstep, -5, marks
+        )):
+            g.add(tt_group)
+        if (tt_group := get_ticktock_group(
+                self.lane, "foot", "tick", 0, mmstep, gy + 15, marks + 1
+        )):
+            g.add(tt_group)
+        if (tt_group := get_ticktock_group(
+                self.lane, "foot", "tock", mmstep / 2, mmstep, gy + 15, marks
+        )):
+            g.add(tt_group)
 
         return g
 

@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+
 def text_width(string: str, size: int = 11) -> float:
     """Get the width of a text string in pixels.
 
