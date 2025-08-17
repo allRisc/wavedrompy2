@@ -11,9 +11,9 @@ from diff import diff_raster, diff_xml
 import wavedrom2
 
 files_basic = glob("tests/files/signal_*.json")
-# files_subcycle = glob("tests/files/subcycle_*.json")
-# files_assign = glob("tests/files/assign_*.json")
-# files_bitfield = glob("tests/files/bitfield_*.json")
+# TODO: files_subcycle = glob("tests/files/subcycle_*.json")
+# TODO: files_assign = glob("tests/files/assign_*.json")
+# TODO: files_bitfield = glob("tests/files/bitfield_*.json")
 files_tutorial = glob("tests/files/tutorial_*.json")
 files_issues = glob("tests/files/issue_*.json")
 
@@ -34,9 +34,14 @@ def wavedromdir(tmpdir_factory):
     if "WAVEDROMDIR" in os.environ:
         return os.environ["WAVEDROMDIR"]
     else:
+        if "WAVEDROM_REPO" in os.environ:
+            wavedrom_repo = os.environ["WAVEDROM_REPO"]
+        else:
+            wavedrom_repo = "https://github.com/wavedrom/cli.git"
+
         wavedromdir = tmpdir_factory.mktemp("wavedrom")
         subprocess.check_call(
-            f"git clone https://github.com/wavedrom/cli.git {wavedromdir}", shell=True
+            f"git clone {wavedrom_repo} {wavedromdir}", shell=True
         )
         subprocess.check_call(
             "git reset --hard bf95544a52f5c23e98917255df2017759fcd18da",
