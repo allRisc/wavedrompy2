@@ -47,11 +47,11 @@ class Wave:
 class LaneConfig:
     """LaneConfig holds configuration parameters for rendering a waveform lane.
     """
-    xs: int = 20
-    """tmpgraphlane0.width"""
+    socket_width: int = 20
+    """Witdth of one unit in pixels, from skinwave socket.width. Replaces 'xs' in original JS"""
 
-    ys: int = 20
-    """tmpgraphlane0.height"""
+    socket_height: int = 20
+    """Height of one unit in pixels, from skinwave socket.height. Replaces 'ys' in original JS"""
 
     xg: int = 120
     """tmpgraphlane0.x"""
@@ -88,8 +88,6 @@ class LaneConfig:
 
     xmax: int = 1
     scale: int = 1
-    period: int = 1
-    phase: float = 0.0
     head: dict = field(default_factory=dict) # TODO: Remove as extraneous
     foot: dict = field(default_factory=dict) # TODO: Remove as extraneous
     hscale: int = 1
@@ -408,7 +406,7 @@ class WaveDrom:
 
         return wave
 
-    def parse_wave_lane(self, text: str, stretch: float = 0) -> list:
+    def parse_wave_lane(self, text: str, stretch: float = 0, phase: float = 0) -> list:
         R = []
 
         Stack = deque(text)
@@ -443,7 +441,7 @@ class WaveDrom:
                 repeat += 1
             R.extend(self.gen_wave_brick(Top, This, stretch, repeat, subCycle))
 
-        for _ in range(int(math.ceil(self.lane.phase))):
+        for _ in range(int(math.ceil(phase))):
             R = R[1:]
 
         return R
@@ -456,17 +454,15 @@ class WaveDrom:
             return tmp
 
         content = []
-        print(sig)
         for sigx in sig:
-            print(sigx)
-            self.lane.period = sigx.get("period", 1)
-            self.lane.phase = sigx.get("phase", 0) * 2
+            period = sigx.get("period", 1)
+            phase = sigx.get("phase", 0) * 2
             sub_content = []
             sub_content.append([sigx.get("name", " "), sigx.get("phase", 0)])
             if sigx.get("wave"):
                 sub_content.append(
                     self.parse_wave_lane(
-                        sigx["wave"], self.lane.period * self.lane.hscale - 1
+                        sigx["wave"], period * self.lane.hscale - 1, phase
                     )
                 )
             else:
@@ -509,8 +505,8 @@ class WaveDrom:
         if val[1]:
             for i in range(len(val[1])):
                 b = svg.Use(href=f"#{val[1][i]}")
-                if i * self.lane.xs:
-                    b.translate(i * self.lane.xs)
+                if i * self.lane.socket_width:
+                    b.translate(i * self.lane.socket_width)
                 g.add(b)
 
             if val[2] and len(val[2]):
@@ -518,7 +514,7 @@ class WaveDrom:
                 if len(labels) != 0:
                     for k in range(len(labels)):
                         if val[2] and k < len(val[2]):
-                            tx = int(labels[k]) * self.lane.xs + self.lane.xlabel
+                            tx = int(labels[k]) * self.lane.socket_width + self.lane.xlabel
                             title = svg.Text(
                                 "", x=[tx], y=[self.lane.ym], text_anchor="middle"
                             )
@@ -1083,8 +1079,8 @@ class WaveDrom:
                 gg = svg.Group(
                     id=f"wavelane_draw_{j}_{index}"
                 )
-                if xoffset * self.lane.xs != 0:
-                    gg.translate(xoffset * self.lane.xs, 0)
+                if xoffset * self.lane.socket_width != 0:
+                    gg.translate(xoffset * self.lane.socket_width, 0)
 
                 self.render_lane_uses(val, gg)
 
@@ -1101,7 +1097,7 @@ class WaveDrom:
         if hasattr(cxt, anchor) and getattr(cxt, anchor).get("text"):
             tmark = svg.Text(
                 "",
-                x=[float(cxt.xmax) * float(cxt.xs) / 2],
+                x=[float(cxt.xmax) * float(cxt.socket_width) / 2],
                 y=[y],
                 text_anchor="middle",
                 fill="#000",
@@ -1184,7 +1180,7 @@ class WaveDrom:
             content = []
 
         mstep = 2 * int(self.lane.hscale)
-        mmstep = mstep * self.lane.xs
+        mmstep = mstep * self.lane.socket_width
         marks = int(self.lane.xmax / mstep)
         gy = len(content) * int(self.lane.yo)
 
@@ -1216,8 +1212,8 @@ class WaveDrom:
             gg = svg.Group(id=f"labels_{index}")
 
             for idx, val in enumerate(source):
-                self.lane.period = val.get("period", 1)
-                self.lane.phase = val.get("phase", 0) * 2
+                period = val.get("period", 1)
+                phase = val.get("phase", 0) * 2
 
                 dy = self.lane.y0 + idx * self.lane.yo
                 g = svg.Group(id=f"labels_{idx}_{index}")
@@ -1243,10 +1239,10 @@ class WaveDrom:
                         if m:
                             text = m.group(1)
                         x = int(
-                            float(self.lane.xs)
+                            float(self.lane.socket_width)
                             * (
-                                2 * (pos + offset) * self.lane.period * self.lane.hscale
-                                - self.lane.phase
+                                2 * (pos + offset) * period * self.lane.hscale
+                                - phase
                             )
                             + float(self.lane.xlabel)
                         )
@@ -1254,7 +1250,7 @@ class WaveDrom:
                             int(
                                 idx * self.lane.yo
                                 + self.lane.y0
-                                + float(self.lane.ys) * 0.5
+                                + float(self.lane.socket_height) * 0.5
                             )
                             - dy
                         )
@@ -1411,8 +1407,8 @@ class WaveDrom:
 
         if source:
             for idx, val in enumerate(source):
-                self.lane.period = val.get("period", 1)
-                self.lane.phase = val.get("phase", 0) * 2
+                period = val.get("period", 1)
+                phase = val.get("phase", 0) * 2
                 text = val.get("node")
                 if text:
                     Stack = list(text)
@@ -1428,17 +1424,17 @@ class WaveDrom:
                             step = 1
                             continue
                         x = int(
-                            float(self.lane.xs)
+                            float(self.lane.socket_width)
                             * (
-                                2 * pos * self.lane.period * self.lane.hscale
-                                - self.lane.phase
+                                2 * pos * period * self.lane.hscale
+                                - phase
                             )
                             + float(self.lane.xlabel)
                         )
                         y = int(
                             idx * self.lane.yo
                             + self.lane.y0
-                            + float(self.lane.ys) * 0.5
+                            + float(self.lane.socket_height) * 0.5
                         )
                         if eventname != ".":
                             Events[eventname] = AttrDict({"x": str(x), "y": str(y)})
@@ -1540,8 +1536,8 @@ class WaveDrom:
         skin = waveskin.get_waveskin(skinname)
 
         if index == 0:
-            self.lane.xs = waveskin.get_waveskin_socket_width(skin)
-            self.lane.ys = waveskin.get_waveskin_socket_height(skin)
+            self.lane.socket_width = waveskin.get_waveskin_socket_width(skin)
+            self.lane.socket_height = waveskin.get_waveskin_socket_height(skin)
             self.lane.xlabel = waveskin.get_waveskin_socket_x(skin)
             self.lane.ym = waveskin.get_waveskin_socket_y(skin)
 
@@ -1566,8 +1562,8 @@ class WaveDrom:
             e = waveskin.get_waveskin(source.get("config").get("skin"))
 
         if index == 0:
-            self.lane.xs = int(e[3][1][2][1]["width"])
-            self.lane.ys = int(e[3][1][2][1]["height"])
+            self.lane.socket_width = int(e[3][1][2][1]["width"])
+            self.lane.socket_height = int(e[3][1][2][1]["height"])
             self.lane.xlabel = int(e[3][1][2][1]["x"])
             self.lane.ym = int(e[3][1][2][1]["y"])
 
@@ -1637,10 +1633,10 @@ class WaveDrom:
 
         self.render_groups(groups, ret.groups, index)
         self.lane.xg = (
-            int(math.ceil(float(xmax - self.lane.tgo) / float(self.lane.xs)))
-            * self.lane.xs
+            int(math.ceil(float(xmax - self.lane.tgo) / float(self.lane.socket_width)))
+            * self.lane.socket_width
         )
-        width = self.lane.xg + self.lane.xs * (self.lane.xmax + 1)
+        width = self.lane.xg + self.lane.socket_width * (self.lane.xmax + 1)
         height = (
             len(content) * self.lane.yo
             + self.lane.yh0
@@ -1706,7 +1702,7 @@ class WaveDrom:
             label.add(gg)
             group_root.add(label)
 
-    def render_gap_uses(self, wave: str, g) -> None:
+    def render_gap_uses(self, wave: str, g, phase, period) -> None:
         subCycle = False
 
         if wave:
@@ -1721,18 +1717,18 @@ class WaveDrom:
                     subCycle = False
                     continue
                 if subCycle:
-                    pos += self.lane.period
+                    pos += period
                 else:
-                    pos += 2 * self.lane.period
+                    pos += 2 * period
                 if next == "|":
                     if subCycle:
-                        dx = float(self.lane.xs) * (
-                            pos * float(self.lane.hscale) - float(self.lane.phase)
+                        dx = float(self.lane.socket_width) * (
+                            pos * float(self.lane.hscale) - float(phase)
                         )
                     else:
-                        dx = float(self.lane.xs) * (
-                            (pos - self.lane.period) * float(self.lane.hscale)
-                            - float(self.lane.phase)
+                        dx = float(self.lane.socket_width) * (
+                            (pos - period) * float(self.lane.hscale)
+                            - float(phase)
                         )
                     b = svg.Use(href="#gap")
                     b.translate(dx)
@@ -1743,8 +1739,8 @@ class WaveDrom:
             gg = svg.Group(id=f"wavegaps_{index}")
 
             for idx, val in enumerate(source):
-                self.lane.period = val.get("period", 1)
-                self.lane.phase = int(val.get("phase", 0) * 2) + self.lane.xmin_cfg
+                period = val.get("period", 1)
+                phase = int(val.get("phase", 0) * 2) + self.lane.xmin_cfg
 
                 dy = self.lane.y0 + idx * self.lane.yo
                 g = svg.Group(
@@ -1753,7 +1749,7 @@ class WaveDrom:
                 g.translate(0, dy)
 
                 if "wave" in val:
-                    self.render_gap_uses(val["wave"], g)
+                    self.render_gap_uses(val["wave"], g, phase, period)
 
                 gg.add(g)
 

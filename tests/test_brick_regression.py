@@ -15,5 +15,5 @@ def test_regression(test):
     w.lane.period = test.period
     w.lane.hscale = test.hscale
     w.lane.phase = test.phase
-    output = w.parse_wave_lane(test.wave, test.period * test.hscale - 1)
+    output = w.parse_wave_lane(test.wave, test.period * test.hscale - 1, phase=test.phase)
     assert(output == test.expected)
