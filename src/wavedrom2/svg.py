@@ -7,10 +7,11 @@
 # See the LICENSE file in the project root for the full license text.
 
 from __future__ import annotations
+
 from collections.abc import Sequence
 
-from svgwrite.base import Title, BaseElement
-from svgwrite.container import Defs, Group, Marker, Use, Style
+from svgwrite.base import BaseElement, Title
+from svgwrite.container import Defs, Group, Marker, Style, Use
 from svgwrite.path import Path
 from svgwrite.shapes import Line, Rect
 from svgwrite.text import Text, TSpan

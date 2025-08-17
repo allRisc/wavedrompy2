@@ -11,7 +11,6 @@
 # Now many parts have been rewritten and diverged
 
 from __future__ import annotations
-from typing import Any
 
 import math
 import re
@@ -19,10 +18,11 @@ import sys
 from collections import deque
 from dataclasses import dataclass, field
 from itertools import chain
+from typing import Any
 
 import svgwrite
 
-from wavedrom2 import svg
+from wavedrom2 import svg, utils
 
 from . import waveskin
 from .attrdict import AttrDict
@@ -71,10 +71,10 @@ class LaneConfig:
     yf1: int = 0
     """foot gap"""
 
-    y0: int = 5
+    y0: int = 5  # TODO: Doesn't appear to ever be set, check if this is true in the JavaScript
     """tmpgraphlane0.y"""
 
-    yo: int = 30
+    yo: int = 30  # TODO: Doesn't appear to ever be set, check if this is true in the JavaScript
     """tmpgraphlane1.y - y0"""
 
     tgo: int = -10
@@ -88,12 +88,12 @@ class LaneConfig:
 
     xmax: int = 1
     scale: int = 1
-    head: dict = field(default_factory=dict)
-    foot: dict = field(default_factory=dict)
     period: int = 1
     phase: float = 0.0
+    head: dict = field(default_factory=dict) # TODO: Remove as extraneous
+    foot: dict = field(default_factory=dict) # TODO: Remove as extraneous
     hscale: int = 1
-    hscale0: int = 1
+    hscale0: int = 1  # TODO: Remove since it appears to be a useless default
     xmin_cfg: int = 0
     xmax_cfg: int = 0
 
@@ -188,7 +188,7 @@ def parse_config(source: dict[str, Any]) -> WaveFormConfig:
                     cfg.lane.xmax_cfg = 2 * config["hbounds"][1]
 
     if "head" in source:
-        cfg.lane.head = source["head"]
+        cfg.lane.head = source["head"]  # TODO: This looks like it is never used
         if "tick" in cfg.lane.head or "tock" in cfg.lane.head:
             cfg.lane.yh0 = 20
 
@@ -196,14 +196,13 @@ def parse_config(source: dict[str, Any]) -> WaveFormConfig:
             cfg.lane.yh1 = 46
             # * Looks redundant: cfg.lane.head["text"] = source["head"]["text"]
 
-
         if "tick" in source["head"]:
             source["head"]["tick"] += cfg.lane.xmin_cfg / 2
         if "tock" in source["head"]:
             source["head"]["tock"] += cfg.lane.xmin_cfg / 2
 
     if "foot" in source:
-        cfg.lane.foot = source["foot"]
+        cfg.lane.foot = source["foot"]  # TODO: This looks like it is never used
         if "tick" in cfg.lane.foot or "tock" in cfg.lane.foot:
             cfg.lane.yf0 = 20
 
@@ -1183,16 +1182,6 @@ class WaveDrom:
     def render_marks(self, content: list | None = None, index: int = 0) -> svg.Group:
         if content is None:
             content = []
-
-        def get_elem(e):
-            if len(e) == 3:
-                ret = self.element[e[0]](e[2])
-                ret.attribs = e[1]
-            elif len(e) == 2:
-                ret = self.element[e[0]](e[1])
-            else:
-                ret = svg.TSpan(e)
-            return ret
 
         mstep = 2 * int(self.lane.hscale)
         mmstep = mstep * self.lane.xs
