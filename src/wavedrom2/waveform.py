@@ -34,8 +34,10 @@ class Wave:
     """Class which represents the state of a WaveDrom waves parsed from JSON."""
 
     x: int = 0
+    xx: int = 0
     y: int = 0
     xmax: int = 0
+    name: str | None = None
     width: list[float] = field(default_factory=list)
     lanes: list = field(default_factory=list)
     groups: list[dict] = field(default_factory=list)
@@ -95,6 +97,18 @@ class LaneConfig:
     xmin_cfg: int = 0
     xmax_cfg: int = 0
 
+
+@dataclass
+class WaveFormConfig:
+    """WaveFormConfig holds configuration parameters for rendering a waveform.
+    """
+
+    skin: str = "default"
+    """Skin name to use for rendering"""
+
+    lane: LaneConfig = field(default_factory=LaneConfig)
+
+
 # TODO: Replace render_waveform with render_signal
 def render_signal(
         index: int = 0,
@@ -109,6 +123,8 @@ def render_signal(
         raise ValueError("Missing 'signal' key in source")
 
     wave_svg = create_svg_template(index, source)
+    config = parse_config(source)
+    wave = parse_signals(source["signal"])
 
     return wave_svg
 
@@ -136,6 +152,111 @@ def create_svg_template(index: int, source: dict[str, Any]) -> svgwrite.Drawing:
     return template
 
 
+def parse_config(source: dict[str, Any]) -> WaveFormConfig:
+    cfg = WaveFormConfig()
+
+    if cfg.lane.hscale0:
+        cfg.lane.hscale = cfg.lane.hscale0
+    else:
+        cfg.lane.hscale = 1
+
+    cfg.lane.xmin_cfg = 0
+    cfg.lane.xmax_cfg = sys.maxsize
+
+    cfg.lane.yh0 = 0
+    cfg.lane.yh1 = 0
+
+    cfg.lane.yf0 = 0
+    cfg.lane.yf1 = 0
+
+    if "config" not in source:
+        config = source["config"]
+
+        if "hscale" in config:
+            hscale = round(config["hscale"])
+            if hscale > 0:
+                if hscale > 100:
+                    hscale = 100
+                cfg.lane.hscale = hscale
+
+        if "hbounds" in config:
+            if len(config["hbounds"]) == 2:
+                config["hbounds"][0] = math.floor(config["hbounds"][0])
+                config["hbounds"][1] = math.ceil(config["hbounds"][1])
+                if config["hbounds"][0] < config["hbounds"][1]:
+                    cfg.lane.xmin_cfg = 2 * config["hbounds"][0]
+                    cfg.lane.xmax_cfg = 2 * config["hbounds"][1]
+
+    if "head" in source:
+        cfg.lane.head = source["head"]
+        if "tick" in cfg.lane.head or "tock" in cfg.lane.head:
+            cfg.lane.yh0 = 20
+
+        if "text" in cfg.lane.head:
+            cfg.lane.yh1 = 46
+            # * Looks redundant: cfg.lane.head["text"] = source["head"]["text"]
+
+
+        if "tick" in source["head"]:
+            source["head"]["tick"] += cfg.lane.xmin_cfg / 2
+        if "tock" in source["head"]:
+            source["head"]["tock"] += cfg.lane.xmin_cfg / 2
+
+    if "foot" in source:
+        cfg.lane.foot = source["foot"]
+        if "tick" in cfg.lane.foot or "tock" in cfg.lane.foot:
+            cfg.lane.yf0 = 20
+
+        if "text" in cfg.lane.foot:
+            cfg.lane.yf1 = 46
+            # * Looks redundant: cfg.lane.foot["text"] = source["foot"]["text"]
+
+        if "tick" in source["foot"]:
+            source["foot"]["tick"] += cfg.lane.xmin_cfg / 2
+        if "tock" in source["foot"]:
+            source["foot"]["tock"] += cfg.lane.xmin_cfg / 2
+
+    return cfg
+
+
+def parse_signals(source: list[str | dict] | None = None, prev_wave: Wave | None = None) -> Wave:
+    if source is None:
+        source = []
+
+    if prev_wave is not None:
+        wave = prev_wave
+    else:
+        wave = Wave()
+
+    if isinstance(source[0], (str, int)):
+        name = str(source[0])
+        delta_x = 25
+    else:
+        name = None
+        delta_x = 10
+
+    wave.x += delta_x
+
+    for val in source:
+        if isinstance(val, list):
+            prev_y = wave.y
+            wave = parse_signals(val, wave)
+            wave.groups.append({
+                "x": wave.xx,
+                "y": prev_y,
+                "height": wave.y - prev_y,
+                "name": wave.name
+            })
+        elif isinstance(val, dict):
+            wave.lanes.append(val)
+            wave.width.append(wave.x)
+            wave.y += 1
+
+    wave.xx = wave.x
+    wave.x -= delta_x
+    wave.name = name
+
+    return wave
 
 def get_waveskin_name_from_source(source: dict[str, Any]) -> str:
     if "config" in source:
@@ -1425,40 +1546,6 @@ class WaveDrom:
                 self.lane.yf1 = 46
                 self.lane.foot["text"] = source["foot"]["text"]
 
-    def rec(self, tmp: list | None = None, state: Wave | None = None) -> None:
-        if tmp is None:
-            tmp = []
-        if state is None:
-            state = Wave()
-
-        name = None
-        delta = AttrDict({"x": 10})
-        if isinstance(tmp[0], str) or isinstance(tmp[0], int):
-            name = str(tmp[0])
-            delta.x = 25
-
-        state.x += delta.x
-        for val in tmp:
-            if isinstance(val, list):
-                old_y = state.y
-                self.rec(val, state)
-                state.groups.append(
-                    {
-                        "x": state.xx,
-                        "y": old_y,
-                        "height": state.y - old_y,
-                        "name": state.name,
-                    }
-                )
-            elif isinstance(val, dict):
-                state.lanes.append(val)
-                state.width.append(state.x)
-                state.y += 1
-
-        state.xx = state.x
-        state.x -= delta.x
-        state.name = name
-
     def another_template(self, index: int, source: dict) -> svgwrite.Drawing:
         skinname = get_waveskin_name_from_source(source)
         skin = waveskin.get_waveskin(skinname)
@@ -1541,9 +1628,8 @@ class WaveDrom:
         groups = svg.Group(id=f"groups_{index}")
         self.parse_config(source)
 
-        ret = Wave()  # TODO: Rename ret
+        ret = parse_signals(source["signal"])  # TODO: Rename ret
 
-        self.rec(source["signal"], ret)  # parse lanes
         content = self.parse_wave_lanes(ret.lanes)
         (glengths, lanegroups) = self.render_wave_lane(content, index)
         for i, val in enumerate(glengths):
